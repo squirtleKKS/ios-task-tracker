@@ -224,3 +224,6 @@
 - StatisticsViewState
 - RemindersViewState
 - LoadableState
+
+Допы:
+5 экранов

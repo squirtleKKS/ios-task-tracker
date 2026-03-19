@@ -1,10 +1,8 @@
 import Foundation
 
 protocol TasksRepository {
-    func fetchTasks(
-        filter: TasksFilter,
-        sort: TasksSort?
-    ) async throws -> [TaskModel]
+    func fetchTasks() async throws -> [TaskModel]
+    func getTask(id: TaskID) async throws -> TaskModel?
 
     func createTask(
         title: String,

@@ -4,7 +4,13 @@ final class FeaturesRouterImpl: FeaturesRouter {
     weak var viewController: UIViewController?
 
     func openTasks() {
-        pushStub(title: "Задачи")
+        let controller = TasksAssembly.make()
+
+        if let navigationController = viewController?.navigationController {
+            navigationController.pushViewController(controller, animated: true)
+        } else {
+            viewController?.present(controller, animated: true)
+        }
     }
 
     func openStatistics() {

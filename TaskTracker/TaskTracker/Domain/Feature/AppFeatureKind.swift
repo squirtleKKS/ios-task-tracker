@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppFeatureKind: String, Equatable, Codable {
+enum AppFeatureKind: String, Equatable {
     case tasks
     case statistics
     case reminders

@@ -1,6 +1,6 @@
 import UIKit
 
-final class FeaturesViewController: UIViewController, FeaturesView {
+final class FeaturesViewController: UIViewController {
 
     var viewModel: FeaturesViewModel!
 
@@ -18,11 +18,19 @@ final class FeaturesViewController: UIViewController, FeaturesView {
 
         setupNavigationBar()
         setupTableView()
+        bindViewModel()
+        render(viewModel.state)
 
         viewModel.onAppear()
     }
 
-    func render(_ state: FeaturesViewState) {
+    private func bindViewModel() {
+        viewModel.onStateChange = { [weak self] state in
+            self?.render(state)
+        }
+    }
+
+    private func render(_ state: FeaturesViewState) {
         switch state.screen {
         case .initial:
             contentView.activityIndicator.stopAnimating()

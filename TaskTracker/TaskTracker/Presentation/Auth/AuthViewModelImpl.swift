@@ -1,54 +1,62 @@
 import Foundation
 
+@MainActor
 final class AuthViewModelImpl: AuthViewModel {
-    private weak var view: AuthView?
+    var onStateChange: ((AuthViewState) -> Void)?
+
     private let router: AuthRouter
     private let authService: AuthService
 
-    private var state = AuthViewState(
+    private(set) var state = AuthViewState(
         screen: .initial,
         email: "",
         password: "",
         isPrimaryButtonEnabled: false,
         mode: .login
-    )
+    ) {
+        didSet {
+            onStateChange?(state)
+        }
+    }
 
     init(
-        view: AuthView,
         router: AuthRouter,
         authService: AuthService
     ) {
-        self.view = view
         self.router = router
         self.authService = authService
     }
 
     func onAppear() {
-        state.screen = .content(AuthContent())
-        render()
+        updateState {
+            $0.screen = .content(AuthContent())
+        }
     }
 
     func didChangeEmail(_ email: String) {
-        state.email = email
-        updateButtonState()
-        clearErrorIfNeeded()
-        render()
+        updateState {
+            $0.email = email
+            updateButtonState(&$0)
+            clearErrorIfNeeded(&$0)
+        }
     }
 
     func didChangePassword(_ password: String) {
-        state.password = password
-        updateButtonState()
-        clearErrorIfNeeded()
-        render()
+        updateState {
+            $0.password = password
+            updateButtonState(&$0)
+            clearErrorIfNeeded(&$0)
+        }
     }
 
     func didTapSwitchMode() {
-        state.mode = (state.mode == .login) ? .register : .login
-        state.email = ""
-        state.password = ""
-        state.isPrimaryButtonEnabled = false
-        state.screen = .content(AuthContent())
-        render()
+        updateState {
+            $0.mode = ($0.mode == .login) ? .register : .login
+            $0.email = ""
+            $0.password = ""
+            $0.isPrimaryButtonEnabled = false
+            $0.screen = .content(AuthContent())
+        }
     }
 
     func didTapLogin() {
@@ -67,27 +75,26 @@ final class AuthViewModelImpl: AuthViewModel {
 
         guard validateFields(email: email, password: password) else { return }
 
-        state.screen = .loading
-        state.isPrimaryButtonEnabled = false
-        render()
+        updateState {
+            $0.screen = .loading
+            $0.isPrimaryButtonEnabled = false
+        }
 
         Task { [weak self] in
             guard let self else { return }
 
             do {
-                _ = try await self.authService.login(email: email, password: password)
+                _ = try await authService.login(email: email, password: password)
 
-                await MainActor.run {
-                    self.state.screen = .content(AuthContent())
-                    self.updateButtonState()
-                    self.render()
-                    self.router.openFeatures()
+                updateState {
+                    $0.screen = .content(AuthContent())
+                    self.updateButtonState(&$0)
                 }
+                router.openFeatures()
             } catch {
-                await MainActor.run {
-                    self.state.screen = .error(message: self.errorMessage(from: error))
-                    self.updateButtonState()
-                    self.render()
+                updateState {
+                    $0.screen = .error(message: self.errorMessage(from: error))
+                    self.updateButtonState(&$0)
                 }
             }
         }
@@ -99,9 +106,10 @@ final class AuthViewModelImpl: AuthViewModel {
 
         guard validateFields(email: email, password: password) else { return }
 
-        state.screen = .loading
-        state.isPrimaryButtonEnabled = false
-        render()
+        updateState {
+            $0.screen = .loading
+            $0.isPrimaryButtonEnabled = false
+        }
 
         Task { [weak self] in
             guard let self else { return }
@@ -109,17 +117,15 @@ final class AuthViewModelImpl: AuthViewModel {
             do {
                 _ = try await authService.register(email: email, password: password)
 
-                await MainActor.run {
-                    self.state.screen = .content(AuthContent())
-                    self.updateButtonState()
-                    self.render()
-                    self.router.openFeatures()
+                updateState {
+                    $0.screen = .content(AuthContent())
+                    self.updateButtonState(&$0)
                 }
+                router.openFeatures()
             } catch {
-                await MainActor.run {
-                    self.state.screen = .error(message: self.errorMessage(from: error))
-                    self.updateButtonState()
-                    self.render()
+                updateState {
+                    $0.screen = .error(message: self.errorMessage(from: error))
+                    self.updateButtonState(&$0)
                 }
             }
         }
@@ -127,20 +133,21 @@ final class AuthViewModelImpl: AuthViewModel {
 
     private func validateFields(email: String, password: String) -> Bool {
         guard !email.isEmpty, !password.isEmpty else {
-            state.screen = .error(message: "Заполни email и пароль")
-            render()
+            updateState {
+                $0.screen = .error(message: "Заполни email и пароль")
+            }
             return false
         }
         return true
     }
 
-    private func updateButtonState() {
+    private func updateButtonState(_ state: inout AuthViewState) {
         let email = normalized(state.email)
         let password = normalized(state.password)
         state.isPrimaryButtonEnabled = !email.isEmpty && !password.isEmpty
     }
 
-    private func clearErrorIfNeeded() {
+    private func clearErrorIfNeeded(_ state: inout AuthViewState) {
         if case .error = state.screen {
             state.screen = .content(AuthContent())
         }
@@ -158,7 +165,9 @@ final class AuthViewModelImpl: AuthViewModel {
         return "Что-то пошло не так"
     }
 
-    private func render() {
-        view?.render(state)
+    private func updateState(_ mutate: (inout AuthViewState) -> Void) {
+        var newState = state
+        mutate(&newState)
+        state = newState
     }
 }

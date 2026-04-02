@@ -1,6 +1,6 @@
 import UIKit
 
-final class AuthViewController: UIViewController, AuthView {
+final class AuthViewController: UIViewController {
 
     var viewModel: AuthViewModel!
 
@@ -17,6 +17,8 @@ final class AuthViewController: UIViewController, AuthView {
 
         setupActions()
         setupKeyboardObservers()
+        bindViewModel()
+        render(viewModel.state)
 
         viewModel.onAppear()
     }
@@ -25,7 +27,13 @@ final class AuthViewController: UIViewController, AuthView {
         NotificationCenter.default.removeObserver(self)
     }
 
-    func render(_ state: AuthViewState) {
+    private func bindViewModel() {
+        viewModel.onStateChange = { [weak self] state in
+            self?.render(state)
+        }
+    }
+
+    private func render(_ state: AuthViewState) {
         renderedState = state
 
         contentView.emailTextField.text = state.email
@@ -70,7 +78,6 @@ final class AuthViewController: UIViewController, AuthView {
         }
     }
 }
-
 
 private extension AuthViewController {
 

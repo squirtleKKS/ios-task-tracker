@@ -1,6 +1,6 @@
 import Foundation
 
-struct StatsPeriod: Equatable, Codable {
+struct StatsPeriod: Equatable {
     let from: Date
     let to: Date
 }

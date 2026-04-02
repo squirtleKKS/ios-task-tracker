@@ -1,6 +1,6 @@
 import Foundation
 
-struct FeatureID: Equatable, Hashable, Codable {
+struct FeatureID: Equatable, Hashable {
     let rawValue: String
 
     init(_ rawValue: String) {

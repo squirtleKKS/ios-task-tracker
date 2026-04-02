@@ -1,6 +1,6 @@
 import Foundation
 
-struct TaskModel: Equatable, Codable {
+struct TaskModel: Equatable {
     let id: TaskID
     let ownerId: UserID
 

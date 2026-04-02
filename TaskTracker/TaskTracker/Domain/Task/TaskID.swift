@@ -1,6 +1,6 @@
 import Foundation
 
-struct TaskID: Equatable, Hashable, Codable {
+struct TaskID: Equatable, Hashable {
     let rawValue: String
 
     init(_ rawValue: String) {

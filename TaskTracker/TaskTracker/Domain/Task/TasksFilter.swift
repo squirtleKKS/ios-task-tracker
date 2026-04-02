@@ -1,6 +1,6 @@
 import Foundation
 
-struct TasksFilter: Equatable, Codable {
+struct TasksFilter: Equatable {
     let statuses: Set<TaskStatus>
     let priorities: Set<TaskPriority>
     let overdueOnly: Bool

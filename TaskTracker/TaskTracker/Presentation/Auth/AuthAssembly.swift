@@ -7,7 +7,6 @@ enum AuthAssembly {
         let authService = AuthServiceImpl()
 
         let viewModel = AuthViewModelImpl(
-            view: viewController,
             router: router,
             authService: authService
         )

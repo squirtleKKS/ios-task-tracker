@@ -1,6 +1,6 @@
 import UIKit
 
-final class TasksViewController: UIViewController, TasksView {
+final class TasksViewController: UIViewController {
 
     var viewModel: TasksViewModel!
 
@@ -24,10 +24,18 @@ final class TasksViewController: UIViewController, TasksView {
             textView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16)
         ])
 
+        bindViewModel()
+        render(viewModel.state)
         viewModel.onAppear()
     }
 
-    func render(_ state: TasksViewState) {
+    private func bindViewModel() {
+        viewModel.onStateChange = { [weak self] state in
+            self?.render(state)
+        }
+    }
+
+    private func render(_ state: TasksViewState) {
         switch state.screen {
         case .initial:
             textView.text = "initial"

@@ -1,6 +1,6 @@
 import Foundation
 
-enum TaskStatus: String, Equatable, Codable {
+enum TaskStatus: String, Equatable, Hashable {
     case planned
     case inProgress
     case completed

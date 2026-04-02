@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppFeature: Equatable, Codable {
+struct AppFeature: Equatable {
     let id: FeatureID
     let kind: AppFeatureKind
     let title: String

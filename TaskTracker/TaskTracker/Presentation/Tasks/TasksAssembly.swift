@@ -8,7 +8,6 @@ enum TasksAssembly {
         let router = TasksRouterImpl()
         let viewController = TasksViewController()
         let viewModel = TasksViewModelImpl(
-            view: viewController,
             service: service,
             router: router
         )

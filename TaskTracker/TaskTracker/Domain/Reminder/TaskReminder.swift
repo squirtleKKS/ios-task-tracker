@@ -1,6 +1,6 @@
 import Foundation
 
-struct TaskReminder: Equatable, Codable {
+struct TaskReminder: Equatable {
     let id: ReminderID
     let taskId: TaskID
 

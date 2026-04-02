@@ -7,6 +7,8 @@ protocol TasksViewModel: AnyObject {
 
     func onAppear()
     func didPullToRefresh()
+    func didTapRetry()
+    func didChangeSearchQuery(_ query: String)
     func didTapCreate(
         title: String,
         description: String?,
@@ -17,4 +19,5 @@ protocol TasksViewModel: AnyObject {
     func didChangeFilter(_ filter: TasksFilter)
     func didChangeSort(_ sort: TasksSort?)
     func didSelectTask(taskId: TaskID)
+    func didTapSimulateError()
 }

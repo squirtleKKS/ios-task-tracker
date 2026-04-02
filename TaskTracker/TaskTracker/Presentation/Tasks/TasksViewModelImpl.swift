@@ -10,13 +10,10 @@ final class TasksViewModelImpl: TasksViewModel {
     private let deadlineFormatter: DateFormatter
 
     private var loadTask: Task<Void, Never>?
+    private var allTasks: [TaskModel] = []
+    private var shouldFailNextLoad = false
 
-    private(set) var state = TasksViewState(
-        screen: .initial,
-        isRefreshing: false,
-        filter: TasksFilter(),
-        sort: nil
-    ) {
+    private(set) var state = TasksViewState() {
         didSet { onStateChange?(state) }
     }
 
@@ -40,6 +37,20 @@ final class TasksViewModelImpl: TasksViewModel {
 
     func didPullToRefresh() {
         load(isRefreshing: true)
+    }
+
+    func didTapRetry() {
+        load(isRefreshing: false)
+    }
+
+    func didChangeSearchQuery(_ query: String) {
+        updateState { $0.searchQuery = query }
+        applySearch()
+    }
+
+    func didTapSimulateError() {
+        shouldFailNextLoad = true
+        load(isRefreshing: false)
     }
 
     func didTapCreate(
@@ -95,8 +106,14 @@ final class TasksViewModelImpl: TasksViewModel {
     private func load(isRefreshing: Bool) {
         loadTask?.cancel()
 
-        let filter = state.filter
+        let currentFilter = state.filter
         let sort = state.sort
+        let serviceFilter = TasksFilter(
+            statuses: currentFilter.statuses,
+            priorities: currentFilter.priorities,
+            overdueOnly: currentFilter.overdueOnly,
+            searchQuery: nil
+        )
 
         updateState {
             if isRefreshing {
@@ -111,25 +128,48 @@ final class TasksViewModelImpl: TasksViewModel {
             guard let self else { return }
 
             do {
+                if shouldFailNextLoad {
+                    shouldFailNextLoad = false
+                    try await Task.sleep(nanoseconds: 300_000_000)
+                    throw NetworkError.transport
+                }
+
                 let tasks = try await service.getTasks(
-                    filter: filter,
+                    filter: serviceFilter,
                     sort: sort
                 )
 
                 guard !Task.isCancelled else { return }
 
-                let items = tasks.map(mapToItemVM)
-
-                updateState {
-                    $0.isRefreshing = false
-                    $0.screen = items.isEmpty
-                        ? .empty(message: "Нет задач")
-                        : .content(items)
-                }
+                allTasks = tasks
+                applySearch()
             } catch {
                 guard !Task.isCancelled else { return }
                 setError(error)
             }
+        }
+    }
+
+    private func applySearch() {
+        let query = state.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        let filteredTasks: [TaskModel]
+        if query.isEmpty {
+            filteredTasks = allTasks
+        } else {
+            filteredTasks = allTasks.filter {
+                $0.title.lowercased().contains(query)
+                || ($0.description?.lowercased().contains(query) ?? false)
+            }
+        }
+
+        let items = filteredTasks.map(mapToItemVM)
+
+        updateState {
+            $0.isRefreshing = false
+            $0.screen = items.isEmpty
+                ? .empty(message: query.isEmpty ? "Нет задач" : "Ничего не найдено")
+                : .content(items)
         }
     }
 

@@ -4,7 +4,6 @@ final class TasksServiceImpl: TasksService {
 
     private let repository: TasksRepository
     private let now: () -> Date
-    private let deadlineFormatter: DateFormatter
 
     init(
         repository: TasksRepository,
@@ -12,29 +11,19 @@ final class TasksServiceImpl: TasksService {
     ) {
         self.repository = repository
         self.now = now
-
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        self.deadlineFormatter = formatter
     }
 
     func getTasks(
         filter: TasksFilter,
         sort: TasksSort?
-    ) async throws -> [TaskItemVM] {
-
+    ) async throws -> [TaskModel] {
         let tasks = try await repository.fetchTasks()
-
         let filtered = applyFilter(tasks, filter: filter)
-        let sorted = applySort(filtered, sort: sort)
-
-        return sorted.map(mapToVM)
+        return applySort(filtered, sort: sort)
     }
 
-    func getTask(id: TaskID) async throws -> TaskItemVM? {
-        let task = try await repository.getTask(id: id)
-        return task.map(mapToVM)
+    func getTask(id: TaskID) async throws -> TaskModel? {
+        try await repository.getTask(id: id)
     }
 
     func createTask(
@@ -42,21 +31,17 @@ final class TasksServiceImpl: TasksService {
         description: String?,
         priority: TaskPriority,
         deadline: Date?
-    ) async throws -> TaskItemVM {
-
-        let task = try await repository.createTask(
+    ) async throws -> TaskModel {
+        try await repository.createTask(
             title: title,
             description: description,
             priority: priority,
             deadline: deadline
         )
-
-        return mapToVM(task)
     }
 
-    func updateTask(_ task: TaskModel) async throws -> TaskItemVM {
-        let updated = try await repository.updateTask(task)
-        return mapToVM(updated)
+    func updateTask(_ task: TaskModel) async throws -> TaskModel {
+        try await repository.updateTask(task)
     }
 
     func deleteTask(id: TaskID) async throws {
@@ -64,30 +49,12 @@ final class TasksServiceImpl: TasksService {
     }
 }
 
-
 private extension TasksServiceImpl {
-
-    func mapToVM(_ task: TaskModel) -> TaskItemVM {
-        TaskItemVM(
-            id: task.id,
-            title: task.title,
-            status: task.status,
-            priority: task.priority,
-            deadlineText: formatDeadline(task.deadline)
-        )
-    }
-
-    func formatDeadline(_ date: Date?) -> String? {
-        guard let date else { return nil }
-        return deadlineFormatter.string(from: date)
-    }
-
 
     func applyFilter(
         _ items: [TaskModel],
         filter: TasksFilter
     ) -> [TaskModel] {
-
         items.filter { task in
             matchesStatuses(task, filter: filter)
             && matchesPriorities(task, filter: filter)
@@ -124,29 +91,19 @@ private extension TasksServiceImpl {
         }
 
         let query = rawQuery.lowercased()
+        let title = task.title.lowercased()
+        let description = task.description?.lowercased() ?? ""
 
-        if task.title.lowercased().contains(query) {
-            return true
-        }
-
-        if let description = task.description?.lowercased(),
-           description.contains(query) {
-            return true
-        }
-
-        return false
+        return title.contains(query) || description.contains(query)
     }
-
 
     func applySort(
         _ items: [TaskModel],
         sort: TasksSort?
     ) -> [TaskModel] {
-
         guard let sort else { return items }
 
         switch sort {
-
         case .createdAt(let order):
             return items.sorted {
                 compare($0.createdAt, $1.createdAt, order: order)
@@ -154,7 +111,7 @@ private extension TasksServiceImpl {
 
         case .deadline(let order):
             return items.sorted {
-                compare($0.deadline ?? .distantFuture, $1.deadline ?? .distantFuture, order: order)
+                compareOptionalDates($0.deadline, $1.deadline, order: order)
             }
 
         case .priority(let order):
@@ -164,16 +121,12 @@ private extension TasksServiceImpl {
 
         case .status(let order):
             return items.sorted {
-                compare(statusRank($0.status), statusRank($1.status), order: order)
+                compare($0.status.rawValue, $1.status.rawValue, order: order)
             }
         }
     }
 
-    func compare<T: Comparable>(
-        _ lhs: T,
-        _ rhs: T,
-        order: SortOrder
-    ) -> Bool {
+    func compare<T: Comparable>(_ lhs: T, _ rhs: T, order: SortOrder) -> Bool {
         switch order {
         case .ascending:
             return lhs < rhs
@@ -182,12 +135,16 @@ private extension TasksServiceImpl {
         }
     }
 
-    func statusRank(_ status: TaskStatus) -> Int {
-        switch status {
-        case .planned: return 0
-        case .inProgress: return 1
-        case .completed: return 2
-        case .cancelled: return 3
+    func compareOptionalDates(_ lhs: Date?, _ rhs: Date?, order: SortOrder) -> Bool {
+        switch (lhs, rhs) {
+        case let (.some(lhsDate), .some(rhsDate)):
+            return compare(lhsDate, rhsDate, order: order)
+        case (.some, .none):
+            return order == .ascending
+        case (.none, .some):
+            return order == .descending
+        case (.none, .none):
+            return false
         }
     }
 }

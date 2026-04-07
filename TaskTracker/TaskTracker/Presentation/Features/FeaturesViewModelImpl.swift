@@ -1,79 +1,88 @@
 import Foundation
 
+@MainActor
 final class FeaturesViewModelImpl: FeaturesViewModel {
-    private weak var view: FeaturesView?
+    var onStateChange: ((FeaturesViewState) -> Void)?
+
     private let router: FeaturesRouter
     private let authService: AuthService
+    private let featuresService: FeaturesService
 
-    private var state = FeaturesViewState(screen: .initial)
+    private(set) var state = FeaturesViewState(screen: .initial) {
+        didSet { onStateChange?(state) }
+    }
 
     init(
-        view: FeaturesView,
         router: FeaturesRouter,
-        authService: AuthService
+        authService: AuthService,
+        featuresService: FeaturesService
     ) {
-        self.view = view
         self.router = router
         self.authService = authService
+        self.featuresService = featuresService
     }
 
     func onAppear() {
-        state.screen = .content(makeItems())
-        render()
+        load()
     }
 
     func didSelectFeature(id: FeatureID) {
-        switch id.rawValue {
-        case AppFeatureKind.tasks.rawValue:
+        guard case .content(let items) = state.screen,
+              let item = items.first(where: { $0.id == id }) else { return }
+
+        switch item.kind {
+        case .tasks:
             router.openTasks()
-        case AppFeatureKind.statistics.rawValue:
+        case .statistics:
             router.openStatistics()
-        case AppFeatureKind.reminders.rawValue:
+        case .reminders:
             router.openReminders()
-        default:
-            break
         }
     }
 
     func didTapLogout() {
         Task { [weak self] in
             guard let self else { return }
+            await authService.logout()
+            router.openAuth()
+        }
+    }
 
-            await self.authService.logout()
+    private func load() {
+        updateState { $0.screen = .loading }
 
-            await MainActor.run {
-                self.router.openAuth()
+        Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let features = try await featuresService.getFeatures()
+
+                let items = features.map {
+                    FeatureItemVM(
+                        id: $0.id,
+                        title: $0.title,
+                        subtitle: $0.subtitle,
+                        isEnabled: $0.isEnabled,
+                        kind: $0.kind
+                    )
+                }
+
+                updateState {
+                    $0.screen = items.isEmpty
+                        ? .empty(message: "Нет доступных фич")
+                        : .content(items)
+                }
+            } catch {
+                updateState {
+                    $0.screen = .error(message: "Ошибка загрузки")
+                }
             }
         }
     }
 
-    private func makeItems() -> [FeatureItemVM] {
-        [
-            FeatureItemVM(
-                id: FeatureID(AppFeatureKind.tasks.rawValue),
-                title: "Задачи",
-                subtitle: "Список задач",
-                isEnabled: true,
-                kind: .tasks
-            ),
-            FeatureItemVM(
-                id: FeatureID(AppFeatureKind.statistics.rawValue),
-                title: "Статистика",
-                subtitle: "Прогресс и показатели",
-                isEnabled: true,
-                kind: .statistics
-            ),
-            FeatureItemVM(
-                id: FeatureID(AppFeatureKind.reminders.rawValue),
-                title: "Напоминания",
-                subtitle: "Управление уведомлениями",
-                isEnabled: true,
-                kind: .reminders
-            )
-        ]
-    }
-
-    private func render() {
-        view?.render(state)
+    private func updateState(_ mutate: (inout FeaturesViewState) -> Void) {
+        var newState = state
+        mutate(&newState)
+        state = newState
     }
 }

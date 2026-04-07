@@ -5,11 +5,12 @@ enum FeaturesAssembly {
         let viewController = FeaturesViewController()
         let router = FeaturesRouterImpl()
         let authService = AuthServiceImpl()
+        let featuresService = FeaturesServiceImpl()
 
         let viewModel = FeaturesViewModelImpl(
-            view: viewController,
             router: router,
-            authService: authService
+            authService: authService,
+            featuresService: featuresService
         )
 
         viewController.viewModel = viewModel

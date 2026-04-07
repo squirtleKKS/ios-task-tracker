@@ -1,29 +1,33 @@
 import Foundation
 
+@MainActor
 final class TasksViewModelImpl: TasksViewModel {
 
-    weak var view: TasksView?
+    var onStateChange: ((TasksViewState) -> Void)?
 
     private let service: TasksService
     private let router: TasksRouter
+    private let deadlineFormatter: DateFormatter
 
     private var loadTask: Task<Void, Never>?
-    private var state: TasksViewState
+    private var allTasks: [TaskModel] = []
+    private var shouldFailNextLoad = false
+
+    private(set) var state = TasksViewState() {
+        didSet { onStateChange?(state) }
+    }
 
     init(
-        view: TasksView,
         service: TasksService,
         router: TasksRouter
     ) {
-        self.view = view
         self.service = service
         self.router = router
-        self.state = TasksViewState(
-            screen: .initial,
-            isRefreshing: false,
-            filter: TasksFilter(),
-            sort: nil
-        )
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        self.deadlineFormatter = formatter
     }
 
     func onAppear() {
@@ -33,6 +37,20 @@ final class TasksViewModelImpl: TasksViewModel {
 
     func didPullToRefresh() {
         load(isRefreshing: true)
+    }
+
+    func didTapRetry() {
+        load(isRefreshing: false)
+    }
+
+    func didChangeSearchQuery(_ query: String) {
+        updateState { $0.searchQuery = query }
+        applySearch()
+    }
+
+    func didTapSimulateError() {
+        shouldFailNextLoad = true
+        load(isRefreshing: false)
     }
 
     func didTapCreate(
@@ -45,21 +63,15 @@ final class TasksViewModelImpl: TasksViewModel {
             guard let self else { return }
 
             do {
-                _ = try await self.service.createTask(
+                _ = try await service.createTask(
                     title: title,
                     description: description,
                     priority: priority,
                     deadline: deadline
                 )
-                await MainActor.run {
-                    self.load(isRefreshing: false)
-                }
+                load(isRefreshing: false)
             } catch {
-                await MainActor.run {
-                    self.state.isRefreshing = false
-                    self.state.screen = .error(message: self.mapError(error))
-                    self.render()
-                }
+                setError(error)
             }
         }
     }
@@ -69,29 +81,21 @@ final class TasksViewModelImpl: TasksViewModel {
             guard let self else { return }
 
             do {
-                try await self.service.deleteTask(id: taskId)
-                await MainActor.run {
-                    self.load(isRefreshing: false)
-                }
+                try await service.deleteTask(id: taskId)
+                load(isRefreshing: false)
             } catch {
-                await MainActor.run {
-                    self.state.isRefreshing = false
-                    self.state.screen = .error(message: self.mapError(error))
-                    self.render()
-                }
+                setError(error)
             }
         }
     }
 
     func didChangeFilter(_ filter: TasksFilter) {
-        state.filter = filter
-        render()
+        updateState { $0.filter = filter }
         load(isRefreshing: false)
     }
 
     func didChangeSort(_ sort: TasksSort?) {
-        state.sort = sort
-        render()
+        updateState { $0.sort = sort }
         load(isRefreshing: false)
     }
 
@@ -102,50 +106,93 @@ final class TasksViewModelImpl: TasksViewModel {
     private func load(isRefreshing: Bool) {
         loadTask?.cancel()
 
-        if isRefreshing {
-            state.isRefreshing = true
-        } else {
-            state.screen = .loading
-        }
-        render()
-
-        let filter = state.filter
+        let currentFilter = state.filter
         let sort = state.sort
+        let serviceFilter = TasksFilter(
+            statuses: currentFilter.statuses,
+            priorities: currentFilter.priorities,
+            overdueOnly: currentFilter.overdueOnly,
+            searchQuery: nil
+        )
+
+        updateState {
+            if isRefreshing {
+                $0.isRefreshing = true
+            } else {
+                $0.screen = .loading
+                $0.isRefreshing = false
+            }
+        }
 
         loadTask = Task { [weak self] in
             guard let self else { return }
 
             do {
-                let items = try await self.service.getTasks(
-                    filter: filter,
+                if shouldFailNextLoad {
+                    shouldFailNextLoad = false
+                    try await Task.sleep(nanoseconds: 300_000_000)
+                    throw NetworkError.transport
+                }
+
+                let tasks = try await service.getTasks(
+                    filter: serviceFilter,
                     sort: sort
                 )
 
-                if Task.isCancelled { return }
+                guard !Task.isCancelled else { return }
 
-                await MainActor.run {
-                    self.state.isRefreshing = false
-                    if items.isEmpty {
-                        self.state.screen = .empty(message: "Нет задач")
-                    } else {
-                        self.state.screen = .content(items)
-                    }
-                    self.render()
-                }
+                allTasks = tasks
+                applySearch()
             } catch {
-                if Task.isCancelled { return }
-
-                await MainActor.run {
-                    self.state.isRefreshing = false
-                    self.state.screen = .error(message: self.mapError(error))
-                    self.render()
-                }
+                guard !Task.isCancelled else { return }
+                setError(error)
             }
         }
     }
 
-    private func render() {
-        view?.render(state)
+    private func applySearch() {
+        let query = state.searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        let filteredTasks: [TaskModel]
+        if query.isEmpty {
+            filteredTasks = allTasks
+        } else {
+            filteredTasks = allTasks.filter {
+                $0.title.lowercased().contains(query)
+                || ($0.description?.lowercased().contains(query) ?? false)
+            }
+        }
+
+        let items = filteredTasks.map(mapToItemVM)
+
+        updateState {
+            $0.isRefreshing = false
+            $0.screen = items.isEmpty
+                ? .empty(message: query.isEmpty ? "Нет задач" : "Ничего не найдено")
+                : .content(items)
+        }
+    }
+
+    private func mapToItemVM(_ task: TaskModel) -> TaskItemVM {
+        TaskItemVM(
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            priority: task.priority,
+            deadlineText: formatDeadline(task.deadline)
+        )
+    }
+
+    private func formatDeadline(_ date: Date?) -> String? {
+        guard let date else { return nil }
+        return deadlineFormatter.string(from: date)
+    }
+
+    private func setError(_ error: Error) {
+        updateState {
+            $0.isRefreshing = false
+            $0.screen = .error(message: mapError(error))
+        }
     }
 
     private func mapError(_ error: Error) -> String {
@@ -165,5 +212,11 @@ final class TasksViewModelImpl: TasksViewModel {
         }
 
         return "Что-то пошло не так"
+    }
+
+    private func updateState(_ mutate: (inout TasksViewState) -> Void) {
+        var newState = state
+        mutate(&newState)
+        state = newState
     }
 }

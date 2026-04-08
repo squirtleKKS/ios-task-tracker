@@ -3,16 +3,17 @@ import UIKit
 final class AuthContentView: UIView {
 
     let scrollView = UIScrollView()
-    let contentView = UIView()
-    let stackView = UIStackView()
-
-    let titleLabel = UILabel()
-    let emailTextField = UITextField()
-    let passwordTextField = UITextField()
+    let containerView = UIView()
+    let headerLabel = UILabel()
+    let emailTextField = DSTextField(title: "Email", placeholder: "Введите email")
+    let passwordTextField = DSTextField(title: "Пароль", placeholder: "Введите пароль")
     let errorLabel = UILabel()
-    let primaryButton = UIButton(type: .system)
-    let switchModeButton = UIButton(type: .system)
-    let activityIndicator = UIActivityIndicatorView(style: .medium)
+    let primaryButton = DSButton(style: .primary)
+    let switchModeButton = DSButton(style: .secondary)
+    let loadingView = DSLoadingView(text: "Проверяем данные...")
+
+    private let formCardView = UIView()
+    private let stackView = UIStackView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -27,85 +28,84 @@ final class AuthContentView: UIView {
 
 private extension AuthContentView {
     func setupUI() {
-        backgroundColor = .systemBackground
+        backgroundColor = DesignSystem.Colors.background
+
+        [scrollView, containerView, headerLabel, formCardView, stackView, loadingView].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
 
         stackView.axis = .vertical
-        stackView.spacing = 12
+        stackView.spacing = DesignSystem.Spacing.l
 
-        titleLabel.font = .boldSystemFont(ofSize: 28)
-        titleLabel.textAlignment = .center
+        headerLabel.apply(.title)
+        headerLabel.text = "Вход"
+        headerLabel.textAlignment = .center
 
-        emailTextField.placeholder = "Email"
-        emailTextField.borderStyle = .roundedRect
-        emailTextField.keyboardType = .emailAddress
-        emailTextField.autocapitalizationType = .none
-        emailTextField.autocorrectionType = .no
-        emailTextField.returnKeyType = .next
-        emailTextField.accessibilityIdentifier = "auth.email"
+        formCardView.applyCardStyle()
 
-        passwordTextField.placeholder = "Пароль"
-        passwordTextField.borderStyle = .roundedRect
-        passwordTextField.isSecureTextEntry = true
-        passwordTextField.autocapitalizationType = .none
-        passwordTextField.autocorrectionType = .no
-        passwordTextField.returnKeyType = .done
-        passwordTextField.accessibilityIdentifier = "auth.password"
+        emailTextField.textField.keyboardType = .emailAddress
+        emailTextField.textField.autocapitalizationType = .none
+        emailTextField.textField.autocorrectionType = .no
+        emailTextField.textField.returnKeyType = .next
+        emailTextField.textField.accessibilityIdentifier = "auth.email"
 
-        errorLabel.font = .systemFont(ofSize: 14)
-        errorLabel.textColor = .systemRed
+        passwordTextField.setSecureEntry(true)
+        passwordTextField.textField.autocapitalizationType = .none
+        passwordTextField.textField.autocorrectionType = .no
+        passwordTextField.textField.returnKeyType = .done
+        passwordTextField.textField.accessibilityIdentifier = "auth.password"
+
+        errorLabel.apply(.error)
+        errorLabel.textAlignment = .center
         errorLabel.numberOfLines = 0
         errorLabel.isHidden = true
 
-        primaryButton.configuration = .filled()
-        primaryButton.accessibilityIdentifier = "auth.primary"
-
-        switchModeButton.titleLabel?.font = .systemFont(ofSize: 14)
-        switchModeButton.accessibilityIdentifier = "auth.switchMode"
-
-        activityIndicator.hidesWhenStopped = true
+        loadingView.isHidden = true
 
         addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        contentView.addSubview(stackView)
+        addSubview(loadingView)
+        scrollView.addSubview(containerView)
+        containerView.addSubview(formCardView)
+        formCardView.addSubview(stackView)
 
         [
-            titleLabel,
+            headerLabel,
             emailTextField,
             passwordTextField,
             errorLabel,
             primaryButton,
-            switchModeButton,
-            activityIndicator
+            switchModeButton
         ].forEach { stackView.addArrangedSubview($0) }
     }
 
     func setupLayout() {
-        [scrollView, contentView, stackView].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-        }
-
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            containerView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            containerView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            containerView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
 
-            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            contentView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
+            formCardView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 96),
+            formCardView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DesignSystem.Spacing.l),
+            formCardView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DesignSystem.Spacing.l),
+            formCardView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -DesignSystem.Spacing.xl),
 
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 40),
-            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20),
+            stackView.topAnchor.constraint(equalTo: formCardView.topAnchor, constant: DesignSystem.Spacing.xxl),
+            stackView.leadingAnchor.constraint(equalTo: formCardView.leadingAnchor, constant: DesignSystem.Spacing.l),
+            stackView.trailingAnchor.constraint(equalTo: formCardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
+            stackView.bottomAnchor.constraint(equalTo: formCardView.bottomAnchor, constant: -DesignSystem.Spacing.xxl),
 
-            emailTextField.heightAnchor.constraint(equalToConstant: 44),
-            passwordTextField.heightAnchor.constraint(equalToConstant: 44),
-            primaryButton.heightAnchor.constraint(equalToConstant: 50),
+            loadingView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            loadingView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: DesignSystem.Spacing.xxl),
+            loadingView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -DesignSystem.Spacing.xxl)
         ])
     }
 }

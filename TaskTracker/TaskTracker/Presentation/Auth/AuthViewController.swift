@@ -11,9 +11,18 @@ final class AuthViewController: UIViewController {
         view = contentView
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Авторизация"
 
         setupActions()
         setupKeyboardObservers()
@@ -42,12 +51,12 @@ final class AuthViewController: UIViewController {
 
         switch state.mode {
         case .login:
-            contentView.titleLabel.text = "Вход"
+            contentView.headerLabel.text = "Вход"
             contentView.primaryButton.setTitle("Войти", for: .normal)
             contentView.switchModeButton.setTitle("Нет аккаунта? Зарегистрироваться", for: .normal)
 
         case .register:
-            contentView.titleLabel.text = "Регистрация"
+            contentView.headerLabel.text = "Регистрация"
             contentView.primaryButton.setTitle("Зарегистрироваться", for: .normal)
             contentView.switchModeButton.setTitle("Уже есть аккаунт? Войти", for: .normal)
         }
@@ -55,26 +64,26 @@ final class AuthViewController: UIViewController {
         switch state.screen {
         case .initial:
             contentView.errorLabel.isHidden = true
-            contentView.activityIndicator.stopAnimating()
+            contentView.loadingView.stopAnimating()
 
         case .loading:
             contentView.errorLabel.isHidden = true
-            contentView.activityIndicator.startAnimating()
+            contentView.loadingView.startAnimating()
             contentView.primaryButton.isEnabled = false
 
         case .content:
             contentView.errorLabel.isHidden = true
-            contentView.activityIndicator.stopAnimating()
+            contentView.loadingView.stopAnimating()
 
         case .empty(let message):
+            contentView.loadingView.stopAnimating()
             contentView.errorLabel.isHidden = false
             contentView.errorLabel.text = message
-            contentView.activityIndicator.stopAnimating()
 
         case .error(let message):
+            contentView.loadingView.stopAnimating()
             contentView.errorLabel.isHidden = false
             contentView.errorLabel.text = message
-            contentView.activityIndicator.stopAnimating()
         }
     }
 }

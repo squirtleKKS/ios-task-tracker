@@ -4,10 +4,9 @@ final class TasksViewController: UIViewController {
 
     var viewModel: TasksViewModel!
 
-    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
-    private let messageLabel = UILabel()
-    private let retryButton = UIButton(type: .system)
+    private let tableView = UITableView(frame: .zero, style: .plain)
+    private let loadingView = DSLoadingView(text: "Загружаем задачи...")
+    private let messageView = DSMessageView(style: .empty, title: "", message: "", actionTitle: "Повторить")
     private let refreshControl = UIRefreshControl()
     private let searchController = UISearchController(searchResultsController: nil)
     private let listManager = TasksListManager()
@@ -15,22 +14,13 @@ final class TasksViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupNavigationBar()
         setupTableView()
         setupSearch()
         setupActions()
         bindViewModel()
         render(viewModel.state)
         viewModel.onAppear()
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Error",
-            style: .plain,
-            target: self,
-            action: #selector(didTapSimulateError)
-        )
-    }
-    
-    @objc func didTapSimulateError() {
-        viewModel.didTapSimulateError()
     }
 
     private func bindViewModel() {
@@ -54,38 +44,48 @@ final class TasksViewController: UIViewController {
 
         switch state.screen {
         case .initial:
-            activityIndicator.stopAnimating()
+            loadingView.stopAnimating()
+            loadingView.isHidden = true
+            messageView.isHidden = true
             tableView.isHidden = true
-            messageLabel.isHidden = true
-            retryButton.isHidden = true
 
         case .loading:
-            activityIndicator.startAnimating()
-            tableView.isHidden = true
-            messageLabel.isHidden = true
-            retryButton.isHidden = true
+            if state.isRefreshing {
+                messageView.isHidden = true
+                tableView.isHidden = false
+            } else {
+                loadingView.isHidden = false
+                loadingView.startAnimating()
+                messageView.isHidden = true
+                tableView.isHidden = true
+            }
 
         case .content(let items):
-            activityIndicator.stopAnimating()
+            loadingView.stopAnimating()
+            loadingView.isHidden = true
+            messageView.isHidden = true
             tableView.isHidden = false
-            messageLabel.isHidden = true
-            retryButton.isHidden = true
             listManager.setItems(items, in: tableView)
 
         case .empty(let message):
-            activityIndicator.stopAnimating()
+            loadingView.stopAnimating()
+            loadingView.isHidden = true
             tableView.isHidden = true
-            messageLabel.isHidden = false
-            messageLabel.text = message
-            retryButton.isHidden = true
+            messageView.isHidden = false
+            messageView.configure(title: "Пусто", message: message, actionTitle: nil)
             listManager.setItems([], in: tableView)
 
         case .error(let message):
-            activityIndicator.stopAnimating()
-            tableView.isHidden = true
-            messageLabel.isHidden = false
-            messageLabel.text = message
-            retryButton.isHidden = false
+            loadingView.stopAnimating()
+            loadingView.isHidden = true
+            if state.isRefreshing {
+                messageView.isHidden = true
+                tableView.isHidden = false
+            } else {
+                tableView.isHidden = true
+                messageView.isHidden = false
+                messageView.configure(title: "Ошибка", message: message, actionTitle: "Повторить")
+            }
             listManager.setItems([], in: tableView)
         }
     }
@@ -94,29 +94,22 @@ final class TasksViewController: UIViewController {
 private extension TasksViewController {
     func setupUI() {
         title = "Задачи"
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignSystem.Colors.background
 
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        retryButton.translatesAutoresizingMaskIntoConstraints = false
+        [tableView, loadingView, messageView].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
 
+        tableView.backgroundColor = .clear
+        tableView.separatorStyle = .none
         tableView.keyboardDismissMode = .onDrag
-        activityIndicator.hidesWhenStopped = true
 
-        messageLabel.font = .systemFont(ofSize: 16)
-        messageLabel.textColor = .secondaryLabel
-        messageLabel.textAlignment = .center
-        messageLabel.numberOfLines = 0
-        messageLabel.isHidden = true
-
-        retryButton.setTitle("Повторить", for: .normal)
-        retryButton.isHidden = true
+        loadingView.isHidden = true
+        messageView.isHidden = true
 
         view.addSubview(tableView)
-        view.addSubview(activityIndicator)
-        view.addSubview(messageLabel)
-        view.addSubview(retryButton)
+        view.addSubview(loadingView)
+        view.addSubview(messageView)
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -124,16 +117,34 @@ private extension TasksViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
 
-            messageLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -12),
-            messageLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            messageLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-
-            retryButton.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 12),
-            retryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            messageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            messageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.l),
+            messageView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.l)
         ])
+    }
+
+    func setupNavigationBar() {
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationController?.navigationBar.largeTitleTextAttributes = [
+            .foregroundColor: DesignSystem.Colors.textPrimary,
+            .font: DesignSystem.Typography.largeTitle()
+        ]
+        navigationController?.navigationBar.titleTextAttributes = [
+            .foregroundColor: DesignSystem.Colors.textPrimary,
+            .font: DesignSystem.Typography.heading()
+        ]
+        navigationController?.navigationBar.tintColor = DesignSystem.Colors.textPrimary
+
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Error",
+            style: .plain,
+            target: self,
+            action: #selector(didTapSimulateError)
+        )
+        navigationItem.rightBarButtonItem?.tintColor = DesignSystem.Colors.primary
     }
 
     func setupTableView() {
@@ -146,14 +157,22 @@ private extension TasksViewController {
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Поиск по задачам"
         searchController.searchResultsUpdater = self
+        searchController.searchBar.searchTextField.backgroundColor = DesignSystem.Colors.surface
+        searchController.searchBar.searchTextField.textColor = DesignSystem.Colors.textPrimary
+        searchController.searchBar.searchTextField.tintColor = DesignSystem.Colors.primary
+        searchController.searchBar.searchTextField.layer.cornerRadius = 18
+        searchController.searchBar.searchTextField.layer.masksToBounds = true
+        searchController.searchBar.searchTextField.layer.borderWidth = 1
+        searchController.searchBar.searchTextField.layer.borderColor = DesignSystem.Colors.border.cgColor
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = false
         definesPresentationContext = true
     }
 
     func setupActions() {
+        refreshControl.tintColor = DesignSystem.Colors.primary
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
-        retryButton.addTarget(self, action: #selector(didTapRetry), for: .touchUpInside)
+        messageView.actionButton.addTarget(self, action: #selector(didTapRetry), for: .touchUpInside)
     }
 
     @objc func didPullToRefresh() {
@@ -162,6 +181,10 @@ private extension TasksViewController {
 
     @objc func didTapRetry() {
         viewModel.didTapRetry()
+    }
+
+    @objc func didTapSimulateError() {
+        viewModel.didTapSimulateError()
     }
 }
 

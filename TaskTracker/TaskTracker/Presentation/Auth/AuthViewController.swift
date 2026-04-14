@@ -5,7 +5,7 @@ final class AuthViewController: UIViewController {
     var viewModel: AuthViewModel!
 
     private var renderedState: AuthViewState?
-    private let contentView = AuthContentView()
+    private lazy var contentView = AuthContentView()
 
     override func loadView() {
         view = contentView

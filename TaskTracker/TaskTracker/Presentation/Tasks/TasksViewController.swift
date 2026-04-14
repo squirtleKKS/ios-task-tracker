@@ -4,9 +4,9 @@ final class TasksViewController: UIViewController {
 
     var viewModel: TasksViewModel!
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
-    private let loadingView = DSLoadingView(text: "Загружаем задачи...")
-    private let messageView = DSMessageView(style: .empty, title: "", message: "", actionTitle: "Повторить")
+    private lazy var tableView = UITableView(frame: .zero, style: .plain)
+    private lazy var loadingView = DSLoadingView(text: "Загружаем задачи...")
+    private lazy var messageView = DSMessageView(style: .empty, title: "", message: "", actionTitle: "Повторить")
     private let refreshControl = UIRefreshControl()
     private let searchController = UISearchController(searchResultsController: nil)
     private let listManager = TasksListManager()

@@ -5,7 +5,7 @@ final class FeaturesViewController: UIViewController {
     var viewModel: FeaturesViewModel!
 
     private var items: [FeatureItemVM] = []
-    private let contentView = FeaturesContentView()
+    private lazy var contentView = FeaturesContentView()
 
     override func loadView() {
         view = contentView

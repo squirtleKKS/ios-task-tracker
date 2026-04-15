@@ -1,11 +1,7 @@
 import UIKit
 
-protocol TasksListManagerDelegate: AnyObject {
-    func didSelectTask(id: TaskID)
-}
-
 final class TasksListManager: NSObject {
-    weak var delegate: TasksListManagerDelegate?
+    var onTaskSelected: ((TaskID) -> Void)?
 
     private var items: [TaskItemVM] = []
 
@@ -42,10 +38,13 @@ extension TasksListManager: UITableViewDataSource, UITableViewDelegate {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let item = items[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: TaskTableViewCell.reuseIdentifier, for: indexPath)
+        let rawCell = tableView.dequeueReusableCell(
+            withIdentifier: TaskTableViewCell.reuseIdentifier,
+            for: indexPath
+        )
 
-        guard let taskCell = cell as? TaskTableViewCell else {
-            return cell
+        guard let taskCell = rawCell as? TaskTableViewCell else {
+            return rawCell
         }
 
         taskCell.configure(with: item)
@@ -55,7 +54,7 @@ extension TasksListManager: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = items[indexPath.row]
         tableView.deselectRow(at: indexPath, animated: true)
-        delegate?.didSelectTask(id: item.id)
+        onTaskSelected?(item.id)
     }
 
     func tableView(_ tableView: UITableView, didHighlightRowAt indexPath: IndexPath) {
@@ -170,20 +169,20 @@ final class TaskTableViewCell: UITableViewCell {
 
             titleLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: DesignSystem.Spacing.l),
             titleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: DesignSystem.Spacing.l),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: statusLabel.leadingAnchor, constant: -DesignSystem.Spacing.m),
 
-            chevronView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
             chevronView.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            chevronView.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
             chevronView.widthAnchor.constraint(equalToConstant: DesignSystem.Sizes.iconSmall),
             chevronView.heightAnchor.constraint(equalToConstant: DesignSystem.Sizes.iconSmall),
 
             statusLabel.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             statusLabel.trailingAnchor.constraint(equalTo: chevronView.leadingAnchor, constant: -DesignSystem.Spacing.s),
-            statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: DesignSystem.Spacing.m),
-            statusLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 64),
             statusLabel.heightAnchor.constraint(equalToConstant: 24),
+            statusLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 72),
 
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DesignSystem.Spacing.xs),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: statusLabel.leadingAnchor, constant: -DesignSystem.Spacing.m),
+
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DesignSystem.Spacing.s),
             subtitleLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: DesignSystem.Spacing.l),
             subtitleLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
             subtitleLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -DesignSystem.Spacing.l)

@@ -4,7 +4,7 @@ final class DSTextField: UIView {
 
     private let titleLabel = UILabel()
     private let containerView = UIView()
-    let textField = UITextField()
+    private let textField = UITextField()
     private let errorLabel = UILabel()
 
     init(title: String? = nil, placeholder: String? = nil) {
@@ -27,8 +27,24 @@ final class DSTextField: UIView {
         textField.placeholder = placeholder
         textField.attributedPlaceholder = NSAttributedString(
             string: placeholder ?? "",
-            attributes: [.foregroundColor: DesignSystem.Colors.textSecondary.withAlphaComponent(0.45)]
+            attributes: [
+                .foregroundColor: DesignSystem.Colors.textSecondary.withAlphaComponent(0.45)
+            ]
         )
+    }
+
+    func configureInput(
+        keyboardType: UIKeyboardType = .default,
+        returnKeyType: UIReturnKeyType = .default,
+        autocapitalizationType: UITextAutocapitalizationType = .sentences,
+        autocorrectionType: UITextAutocorrectionType = .default,
+        accessibilityIdentifier: String? = nil
+    ) {
+        textField.keyboardType = keyboardType
+        textField.returnKeyType = returnKeyType
+        textField.autocapitalizationType = autocapitalizationType
+        textField.autocorrectionType = autocorrectionType
+        textField.accessibilityIdentifier = accessibilityIdentifier
     }
 
     func setError(_ message: String?) {

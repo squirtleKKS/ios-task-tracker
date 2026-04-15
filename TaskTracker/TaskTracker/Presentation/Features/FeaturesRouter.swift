@@ -5,4 +5,5 @@ protocol FeaturesRouter: AnyObject {
     func openStatistics()
     func openReminders()
     func openAuth()
+    func openBDUI()
 }

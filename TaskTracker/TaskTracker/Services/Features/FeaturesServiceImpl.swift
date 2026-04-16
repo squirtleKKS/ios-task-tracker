@@ -24,6 +24,13 @@ final class FeaturesServiceImpl: FeaturesService {
                 title: "Напоминания",
                 subtitle: "Уведомления",
                 isEnabled: false
+            ),
+            AppFeature(
+                id: FeatureID("bdui"),
+                kind: .bdui,
+                title: "bdui",
+                subtitle: "bdui",
+                isEnabled: true
             )
         ]
     }

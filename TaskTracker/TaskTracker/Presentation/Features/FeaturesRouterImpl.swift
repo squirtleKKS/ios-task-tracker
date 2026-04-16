@@ -12,6 +12,15 @@ final class FeaturesRouterImpl: FeaturesRouter {
             viewController?.present(controller, animated: true)
         }
     }
+    
+    func openBDUI() {
+        let controller = BDUIProfileViewController()
+        if let navigationController = viewController?.navigationController {
+            navigationController.pushViewController(controller, animated: true)
+        } else {
+            viewController?.present(controller, animated: true)
+        }
+    }
 
     func openStatistics() {
         pushStub(title: "Статистика")

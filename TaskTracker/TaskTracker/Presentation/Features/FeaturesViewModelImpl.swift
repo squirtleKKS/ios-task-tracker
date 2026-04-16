@@ -33,6 +33,8 @@ final class FeaturesViewModelImpl: FeaturesViewModel {
         switch item.kind {
         case .tasks:
             router.openTasks()
+        case .bdui:
+            router.openBDUI()
         case .statistics:
             router.openStatistics()
         case .reminders:

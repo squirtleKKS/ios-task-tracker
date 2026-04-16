@@ -74,60 +74,66 @@ private extension BDUIViewMapper {
     }
 
     func makeButton(props: BDUIButtonProps) -> DSButton {
-        let view = DSButton(style: props.style.value)
-        view.setTitle(props.title, for: .normal)
-
-        if let action = props.action {
-            view.addAction(
-                UIAction { [weak actionHandler] _ in
-                    actionHandler?.handle(action: action)
-                },
-                for: .touchUpInside
+        DSButton(
+            configuration: DSButtonConfiguration(
+                title: props.title,
+                style: props.style.value,
+                isEnabled: true,
+                isHidden: false,
+                accessibilityIdentifier: nil,
+                onTap: props.action.map { action in
+                    { [weak actionHandler] in
+                        actionHandler?.handle(action: action)
+                    }
+                }
             )
-        }
-
-        return view
+        )
     }
 
     func makeTextField(props: BDUITextFieldProps) -> DSTextField {
-        let view = DSTextField(title: props.title, placeholder: props.placeholder)
-        view.text = props.text
-        view.setSecureEntry(props.isSecure ?? false)
+        let view = DSTextField(
+            configuration: DSTextFieldConfiguration(
+                title: props.title,
+                placeholder: props.placeholder,
+                text: props.text,
+                errorMessage: nil,
+                isSecureEntry: props.isSecure ?? false,
+                keyboardType: .default,
+                returnKeyType: .default,
+                autocapitalizationType: .sentences,
+                autocorrectionType: .default,
+                accessibilityIdentifier: nil
+            )
+        )
         return view
     }
 
     func makeMessage(props: BDUIMessageProps) -> DSMessageView {
-        let view = DSMessageView(
-            style: props.style.value,
-            title: props.title,
-            message: props.message,
-            actionTitle: props.actionTitle
-        )
-
-        if let action = props.action {
-            view.actionButton.addAction(
-                UIAction { [weak actionHandler] _ in
-                    actionHandler?.handle(action: action)
-                },
-                for: .touchUpInside
+        DSMessageView(
+            configuration: DSMessageViewConfiguration(
+                style: props.style.value,
+                title: props.title,
+                message: props.message,
+                actionTitle: props.actionTitle,
+                isHidden: false,
+                onActionTap: props.action.map { action in
+                    { [weak actionHandler] in
+                        actionHandler?.handle(action: action)
+                    }
+                }
             )
-        }
-
-        return view
+        )
     }
 
     func makeLoading(props: BDUILoadingProps) -> DSLoadingView {
-        let view = DSLoadingView(text: props.text)
-
-        if props.isAnimating ?? true {
-            view.startAnimating()
-        } else {
-            view.stopAnimating()
-        }
-
-        return view
+        DSLoadingView(
+            configuration: DSLoadingViewConfiguration(
+                text: props.text,
+                isHidden: false,
+                isAnimating: props.isAnimating ?? true
+            )
+        )
     }
-
     func applyBaseLayout(_ layout: BDUILayout?, to view: UIView) {
         view.translatesAutoresizingMaskIntoConstraints = false
 

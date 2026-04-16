@@ -38,10 +38,12 @@ private extension BDUIProfileViewController {
             ])
         } catch {
             let fallback = DSMessageView(
-                style: .error,
-                title: "Ошибка",
-                message: "Не удалось декодировать BDUI экран",
-                actionTitle: nil
+                configuration: DSMessageViewConfiguration(
+                    style: .error,
+                    title: "Ошибка",
+                    message: "Не удалось декодировать BDUI экран",
+                    actionTitle: nil
+                )
             )
             fallback.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview(fallback)

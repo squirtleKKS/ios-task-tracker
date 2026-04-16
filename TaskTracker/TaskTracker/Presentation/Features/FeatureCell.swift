@@ -1,5 +1,5 @@
 import UIKit
-private final class FeatureCell: UITableViewCell {
+final class FeatureCell: UITableViewCell {
     static let reuseIdentifier = "FeatureCell"
 
     private let cardView = UIView()

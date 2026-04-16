@@ -10,8 +10,8 @@ final class TasksContentView: UIView {
     let searchController = UISearchController(searchResultsController: nil)
 
     private let tableView = UITableView(frame: .zero, style: .plain)
-    private let loadingView = DSLoadingView(text: "Загружаем задачи...")
-    private let messageView = DSMessageView(style: .empty, title: "", message: "", actionTitle: "Повторить")
+    private let loadingView = DSLoadingView()
+    private let messageView = DSMessageView()
     private let refreshControl = UIRefreshControl()
     private let listManager = TasksListManager()
 
@@ -47,9 +47,6 @@ private extension TasksContentView {
         tableView.separatorStyle = .none
         tableView.showsVerticalScrollIndicator = false
         tableView.keyboardDismissMode = .onDrag
-
-        loadingView.isHidden = true
-        messageView.isHidden = true
 
         addSubview(tableView)
         addSubview(loadingView)
@@ -120,65 +117,104 @@ private extension TasksContentView {
         switch screen {
         case .initial:
             listManager.setItems([], in: tableView)
-            showInitial()
+            tableView.isHidden = true
+            loadingView.configure(
+                DSLoadingViewConfiguration(
+                    text: "Загружаем задачи...",
+                    isHidden: true,
+                    isAnimating: false
+                )
+            )
+            messageView.configure(DSMessageViewConfiguration(isHidden: true))
 
         case .loading:
             if isRefreshing {
-                messageView.isHidden = true
                 tableView.isHidden = false
+                loadingView.configure(
+                    DSLoadingViewConfiguration(
+                        text: "Загружаем задачи...",
+                        isHidden: true,
+                        isAnimating: false
+                    )
+                )
+                messageView.configure(DSMessageViewConfiguration(isHidden: true))
             } else {
                 listManager.setItems([], in: tableView)
-                showLoading()
+                tableView.isHidden = true
+                loadingView.configure(
+                    DSLoadingViewConfiguration(
+                        text: "Загружаем задачи...",
+                        isHidden: false,
+                        isAnimating: true
+                    )
+                )
+                messageView.configure(DSMessageViewConfiguration(isHidden: true))
             }
 
         case .content(let items):
             listManager.setItems(items, in: tableView)
-            showContent()
+            tableView.isHidden = false
+            loadingView.configure(
+                DSLoadingViewConfiguration(
+                    text: "Загружаем задачи...",
+                    isHidden: true,
+                    isAnimating: false
+                )
+            )
+            messageView.configure(DSMessageViewConfiguration(isHidden: true))
 
         case .empty(let message):
             listManager.setItems([], in: tableView)
-            showMessage(title: "Пусто", message: message, actionTitle: nil)
+            tableView.isHidden = true
+            loadingView.configure(
+                DSLoadingViewConfiguration(
+                    text: "Загружаем задачи...",
+                    isHidden: true,
+                    isAnimating: false
+                )
+            )
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    style: .empty,
+                    title: "Пусто",
+                    message: message,
+                    actionTitle: nil,
+                    isHidden: false
+                )
+            )
 
         case .error(let message):
             if isRefreshing {
-                messageView.isHidden = true
                 tableView.isHidden = false
+                loadingView.configure(
+                    DSLoadingViewConfiguration(
+                        text: "Загружаем задачи...",
+                        isHidden: true,
+                        isAnimating: false
+                    )
+                )
+                messageView.configure(DSMessageViewConfiguration(isHidden: true))
             } else {
                 listManager.setItems([], in: tableView)
-                showMessage(title: "Ошибка", message: message, actionTitle: "Повторить")
+                tableView.isHidden = true
+                loadingView.configure(
+                    DSLoadingViewConfiguration(
+                        text: "Загружаем задачи...",
+                        isHidden: true,
+                        isAnimating: false
+                    )
+                )
+                messageView.configure(
+                    DSMessageViewConfiguration(
+                        style: .error,
+                        title: "Ошибка",
+                        message: message,
+                        actionTitle: "Повторить",
+                        isHidden: false
+                    )
+                )
             }
-            loadingView.stopAnimating()
-            loadingView.isHidden = true
         }
-    }
-
-    func showInitial() {
-        loadingView.stopAnimating()
-        loadingView.isHidden = true
-        messageView.isHidden = true
-        tableView.isHidden = true
-    }
-
-    func showLoading() {
-        loadingView.isHidden = false
-        loadingView.startAnimating()
-        messageView.isHidden = true
-        tableView.isHidden = true
-    }
-
-    func showContent() {
-        loadingView.stopAnimating()
-        loadingView.isHidden = true
-        messageView.isHidden = true
-        tableView.isHidden = false
-    }
-
-    func showMessage(title: String, message: String, actionTitle: String?) {
-        loadingView.stopAnimating()
-        loadingView.isHidden = true
-        tableView.isHidden = true
-        messageView.isHidden = false
-        messageView.configure(title: title, message: message, actionTitle: actionTitle)
     }
 
     @objc func didPullToRefresh() {

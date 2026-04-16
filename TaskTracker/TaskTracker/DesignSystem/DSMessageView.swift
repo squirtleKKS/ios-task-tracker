@@ -1,5 +1,27 @@
 import UIKit
 
+struct DSMessageViewConfiguration {
+    let style: DSMessageView.Style
+    let title: String?
+    let message: String?
+    let actionTitle: String?
+    let isHidden: Bool
+
+    init(
+        style: DSMessageView.Style = .empty,
+        title: String? = nil,
+        message: String? = nil,
+        actionTitle: String? = nil,
+        isHidden: Bool = true
+    ) {
+        self.style = style
+        self.title = title
+        self.message = message
+        self.actionTitle = actionTitle
+        self.isHidden = isHidden
+    }
+}
+
 final class DSMessageView: UIView {
 
     enum Style {
@@ -7,34 +29,41 @@ final class DSMessageView: UIView {
         case error
     }
 
-    let actionButton = DSButton(style: .secondary)
+    let actionButton = DSButton()
 
     private let titleLabel = UILabel()
     private let messageLabel = UILabel()
     private let stackView = UIStackView()
 
-    init(style: Style, title: String, message: String, actionTitle: String? = nil) {
+    init(configuration: DSMessageViewConfiguration = .init()) {
         super.init(frame: .zero)
-        setup(style: style, title: title, message: message, actionTitle: actionTitle)
+        setup()
+        configure(configuration)
     }
 
     required init?(coder: NSCoder) {
         fatalError()
     }
 
-    func configure(title: String, message: String, actionTitle: String?) {
-        titleLabel.text = title
-        messageLabel.text = message
+    func configure(_ configuration: DSMessageViewConfiguration) {
+        isHidden = configuration.isHidden
+        titleLabel.text = configuration.title
+        messageLabel.text = configuration.message
+        messageLabel.apply(configuration.style == .error ? .error : .bodySecondary)
 
-        if let actionTitle, !actionTitle.isEmpty {
-            actionButton.isHidden = false
-            actionButton.setTitle(actionTitle, for: .normal)
-        } else {
-            actionButton.isHidden = true
-        }
+        let hasAction = !(configuration.actionTitle?.isEmpty ?? true)
+
+        actionButton.configure(
+            DSButtonConfiguration(
+                title: configuration.actionTitle,
+                style: .secondary,
+                isEnabled: true,
+                isHidden: !hasAction
+            )
+        )
     }
 
-    private func setup(style: Style, title: String, message: String, actionTitle: String?) {
+    private func setup() {
         translatesAutoresizingMaskIntoConstraints = false
 
         backgroundColor = DesignSystem.Colors.surface
@@ -53,7 +82,6 @@ final class DSMessageView: UIView {
         titleLabel.apply(.heading)
         titleLabel.textAlignment = .center
 
-        messageLabel.apply(style == .error ? .error : .bodySecondary)
         messageLabel.numberOfLines = 0
         messageLabel.textAlignment = .center
 
@@ -65,8 +93,6 @@ final class DSMessageView: UIView {
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(messageLabel)
         stackView.addArrangedSubview(actionButton)
-
-        configure(title: title, message: message, actionTitle: actionTitle)
 
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: topAnchor, constant: DesignSystem.Spacing.xl),

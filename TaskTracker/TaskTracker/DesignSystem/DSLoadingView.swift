@@ -1,64 +1,70 @@
 import UIKit
 
+struct DSLoadingViewConfiguration {
+    let text: String?
+    let isHidden: Bool
+    let isAnimating: Bool
+
+    init(
+        text: String? = nil,
+        isHidden: Bool = true,
+        isAnimating: Bool = false
+    ) {
+        self.text = text
+        self.isHidden = isHidden
+        self.isAnimating = isAnimating
+    }
+}
+
 final class DSLoadingView: UIView {
 
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
-    private let titleLabel = UILabel()
-    private let stackView = UIStackView()
+    private let label = UILabel()
 
-    init(text: String = "Загрузка...") {
+    init(configuration: DSLoadingViewConfiguration = .init()) {
         super.init(frame: .zero)
-        setup(text: text)
+        setup()
+        configure(configuration)
     }
 
     required init?(coder: NSCoder) {
         fatalError()
     }
 
-    func startAnimating() {
-        isHidden = false
-        activityIndicator.startAnimating()
+    func configure(_ configuration: DSLoadingViewConfiguration) {
+        label.text = configuration.text
+        isHidden = configuration.isHidden
+
+        if configuration.isAnimating {
+            activityIndicator.startAnimating()
+        } else {
+            activityIndicator.stopAnimating()
+        }
     }
 
-    func stopAnimating() {
-        activityIndicator.stopAnimating()
-        isHidden = true
-    }
-
-    private func setup(text: String) {
+    private func setup() {
         translatesAutoresizingMaskIntoConstraints = false
 
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        activityIndicator.color = DesignSystem.Colors.primary
+        [activityIndicator, label].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
 
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.apply(.bodySecondary)
-        titleLabel.text = text
-        titleLabel.textAlignment = .center
+        label.apply(.bodySecondary)
+        label.textAlignment = .center
 
-        stackView.translatesAutoresizingMaskIntoConstraints = false
+        let stackView = UIStackView(arrangedSubviews: [activityIndicator, label])
         stackView.axis = .vertical
         stackView.spacing = DesignSystem.Spacing.s
         stackView.alignment = .center
+        stackView.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(stackView)
-        stackView.addArrangedSubview(activityIndicator)
-        stackView.addArrangedSubview(titleLabel)
 
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: topAnchor, constant: DesignSystem.Spacing.l),
-            stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DesignSystem.Spacing.xl),
-            stackView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DesignSystem.Spacing.xl),
-            stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -DesignSystem.Spacing.l)
+            stackView.topAnchor.constraint(equalTo: topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
-
-        backgroundColor = DesignSystem.Colors.surface.withAlphaComponent(0.96)
-        layer.cornerRadius = DesignSystem.CornerRadius.m
-        layer.borderWidth = 1
-        layer.borderColor = DesignSystem.Colors.border.cgColor
-        layer.shadowColor = DesignSystem.Colors.shadow.cgColor
-        layer.shadowOpacity = 1
-        layer.shadowRadius = 10
-        layer.shadowOffset = CGSize(width: 0, height: 4)
     }
 }

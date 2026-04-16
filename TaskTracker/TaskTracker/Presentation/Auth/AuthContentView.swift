@@ -13,12 +13,12 @@ final class AuthContentView: UIView {
     private let stackView = UIStackView()
 
     private let headerLabel = UILabel()
-    private let emailTextField = DSTextField(title: "Email", placeholder: "Введите email")
-    private let passwordTextField = DSTextField(title: "Пароль", placeholder: "Введите пароль")
-    private let primaryButton = DSButton(style: .primary)
-    private let switchModeButton = DSButton(style: .secondary)
-    private let loadingView = DSLoadingView(text: "Проверяем данные...")
-    private let messageView = DSMessageView(style: .error, title: "", message: "", actionTitle: nil)
+    private let emailTextField = DSTextField()
+    private let passwordTextField = DSTextField()
+    private let primaryButton = DSButton()
+    private let switchModeButton = DSButton()
+    private let loadingView = DSLoadingView()
+    private let messageView = DSMessageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -32,10 +32,13 @@ final class AuthContentView: UIView {
     }
 
     func render(_ state: AuthViewState) {
-        renderMode(state.mode)
-        renderFields(email: state.email, password: state.password)
-        renderScreen(state.screen)
-        renderActions(state)
+        headerLabel.text = state.mode == .login ? "Вход" : "Регистрация"
+        emailTextField.configure(makeEmailConfiguration(email: state.email))
+        passwordTextField.configure(makePasswordConfiguration(password: state.password))
+        primaryButton.configure(makePrimaryButtonConfiguration(state: state))
+        switchModeButton.configure(makeSwitchModeButtonConfiguration(state: state))
+        loadingView.configure(makeLoadingConfiguration(screen: state.screen))
+        messageView.configure(makeMessageConfiguration(screen: state.screen))
     }
 
     func updateKeyboardInset(_ bottomInset: CGFloat) {
@@ -67,25 +70,6 @@ private extension AuthContentView {
         headerLabel.textAlignment = .center
 
         formCardView.applyCardStyle()
-
-        emailTextField.configureInput(
-            keyboardType: .emailAddress,
-            returnKeyType: .next,
-            autocapitalizationType: .none,
-            autocorrectionType: .no,
-            accessibilityIdentifier: "auth.email"
-        )
-
-        passwordTextField.setSecureEntry(true)
-        passwordTextField.configureInput(
-            returnKeyType: .done,
-            autocapitalizationType: .none,
-            autocorrectionType: .no,
-            accessibilityIdentifier: "auth.password"
-        )
-
-        loadingView.isHidden = true
-        messageView.isHidden = true
 
         addSubview(scrollView)
         addSubview(loadingView)
@@ -142,70 +126,39 @@ private extension AuthContentView {
         switchModeButton.addTarget(self, action: #selector(switchModeTapped), for: .touchUpInside)
     }
 
-    func renderMode(_ mode: AuthMode) {
-        switch mode {
-        case .login:
-            headerLabel.text = "Вход"
-            primaryButton.setTitle("Войти", for: .normal)
-            switchModeButton.setTitle("Нет аккаунта? Зарегистрироваться", for: .normal)
-
-        case .register:
-            headerLabel.text = "Регистрация"
-            primaryButton.setTitle("Зарегистрироваться", for: .normal)
-            switchModeButton.setTitle("Уже есть аккаунт? Войти", for: .normal)
-        }
+    func makeEmailConfiguration(email: String) -> DSTextFieldConfiguration {
+        DSTextFieldConfiguration(
+            title: "Email",
+            placeholder: "Введите email",
+            text: email,
+            errorMessage: nil,
+            isSecureEntry: false,
+            keyboardType: .emailAddress,
+            returnKeyType: .next,
+            autocapitalizationType: .none,
+            autocorrectionType: .no,
+            accessibilityIdentifier: "auth.email",
+            isHidden: false
+        )
     }
 
-    func renderFields(email: String, password: String) {
-        if emailTextField.text != email {
-            emailTextField.text = email
-        }
-
-        if passwordTextField.text != password {
-            passwordTextField.text = password
-        }
+    func makePasswordConfiguration(password: String) -> DSTextFieldConfiguration {
+        DSTextFieldConfiguration(
+            title: "Пароль",
+            placeholder: "Введите пароль",
+            text: password,
+            errorMessage: nil,
+            isSecureEntry: true,
+            keyboardType: .default,
+            returnKeyType: .done,
+            autocapitalizationType: .none,
+            autocorrectionType: .no,
+            accessibilityIdentifier: "auth.password",
+            isHidden: false
+        )
     }
 
-    func renderScreen(_ screen: LoadableState<AuthContent>) {
-        switch screen {
-        case .initial:
-            loadingView.stopAnimating()
-            loadingView.isHidden = true
-            messageView.isHidden = true
-            emailTextField.setError(nil)
-            passwordTextField.setError(nil)
-
-        case .loading:
-            loadingView.isHidden = false
-            loadingView.startAnimating()
-            messageView.isHidden = true
-            emailTextField.setError(nil)
-            passwordTextField.setError(nil)
-
-        case .content:
-            loadingView.stopAnimating()
-            loadingView.isHidden = true
-            messageView.isHidden = true
-            emailTextField.setError(nil)
-            passwordTextField.setError(nil)
-
-        case .empty(let message):
-            loadingView.stopAnimating()
-            loadingView.isHidden = true
-            showMessage(title: "Пока ничего нет", message: message)
-            emailTextField.setError(nil)
-            passwordTextField.setError(nil)
-
-        case .error(let message):
-            loadingView.stopAnimating()
-            loadingView.isHidden = true
-            showMessage(title: "Ошибка", message: message)
-            emailTextField.setError(nil)
-            passwordTextField.setError(nil)
-        }
-    }
-
-    func renderActions(_ state: AuthViewState) {
+    func makePrimaryButtonConfiguration(state: AuthViewState) -> DSButtonConfiguration {
         let isLoading: Bool
 
         switch state.screen {
@@ -215,13 +168,76 @@ private extension AuthContentView {
             isLoading = false
         }
 
-        primaryButton.isEnabled = state.isPrimaryButtonEnabled && !isLoading
-        switchModeButton.isEnabled = !isLoading
+        return DSButtonConfiguration(
+            title: state.mode == .login ? "Войти" : "Зарегистрироваться",
+            style: .primary,
+            isEnabled: state.isPrimaryButtonEnabled && !isLoading,
+            isHidden: false,
+            accessibilityIdentifier: "auth.primary"
+        )
     }
 
-    func showMessage(title: String, message: String) {
-        messageView.configure(title: title, message: message, actionTitle: nil)
-        messageView.isHidden = false
+    func makeSwitchModeButtonConfiguration(state: AuthViewState) -> DSButtonConfiguration {
+        let isLoading: Bool
+
+        switch state.screen {
+        case .loading:
+            isLoading = true
+        default:
+            isLoading = false
+        }
+
+        return DSButtonConfiguration(
+            title: state.mode == .login
+                ? "Нет аккаунта? Зарегистрироваться"
+                : "Уже есть аккаунт? Войти",
+            style: .secondary,
+            isEnabled: !isLoading,
+            isHidden: false,
+            accessibilityIdentifier: "auth.switchMode"
+        )
+    }
+
+    func makeLoadingConfiguration(screen: LoadableState<AuthContent>) -> DSLoadingViewConfiguration {
+        switch screen {
+        case .loading:
+            return DSLoadingViewConfiguration(
+                text: "Проверяем данные...",
+                isHidden: false,
+                isAnimating: true
+            )
+        default:
+            return DSLoadingViewConfiguration(
+                text: "Проверяем данные...",
+                isHidden: true,
+                isAnimating: false
+            )
+        }
+    }
+
+    func makeMessageConfiguration(screen: LoadableState<AuthContent>) -> DSMessageViewConfiguration {
+        switch screen {
+        case .empty(let message):
+            return DSMessageViewConfiguration(
+                style: .empty,
+                title: "Пока ничего нет",
+                message: message,
+                actionTitle: nil,
+                isHidden: false
+            )
+
+        case .error(let message):
+            return DSMessageViewConfiguration(
+                style: .error,
+                title: "Ошибка",
+                message: message,
+                actionTitle: nil,
+                isHidden: false
+            )
+
+        default:
+            return DSMessageViewConfiguration(isHidden: true)
+        }
     }
 
     @objc func emailChanged() {

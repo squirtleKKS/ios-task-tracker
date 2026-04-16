@@ -1,5 +1,45 @@
 import UIKit
 
+struct DSTextFieldConfiguration {
+    let title: String?
+    let placeholder: String?
+    let text: String?
+    let errorMessage: String?
+    let isSecureEntry: Bool
+    let keyboardType: UIKeyboardType
+    let returnKeyType: UIReturnKeyType
+    let autocapitalizationType: UITextAutocapitalizationType
+    let autocorrectionType: UITextAutocorrectionType
+    let accessibilityIdentifier: String?
+    let isHidden: Bool
+
+    init(
+        title: String? = nil,
+        placeholder: String? = nil,
+        text: String? = nil,
+        errorMessage: String? = nil,
+        isSecureEntry: Bool = false,
+        keyboardType: UIKeyboardType = .default,
+        returnKeyType: UIReturnKeyType = .default,
+        autocapitalizationType: UITextAutocapitalizationType = .sentences,
+        autocorrectionType: UITextAutocorrectionType = .default,
+        accessibilityIdentifier: String? = nil,
+        isHidden: Bool = false
+    ) {
+        self.title = title
+        self.placeholder = placeholder
+        self.text = text
+        self.errorMessage = errorMessage
+        self.isSecureEntry = isSecureEntry
+        self.keyboardType = keyboardType
+        self.returnKeyType = returnKeyType
+        self.autocapitalizationType = autocapitalizationType
+        self.autocorrectionType = autocorrectionType
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.isHidden = isHidden
+    }
+}
+
 final class DSTextField: UIView {
 
     private let titleLabel = UILabel()
@@ -7,10 +47,10 @@ final class DSTextField: UIView {
     private let textField = UITextField()
     private let errorLabel = UILabel()
 
-    init(title: String? = nil, placeholder: String? = nil) {
+    init(configuration: DSTextFieldConfiguration = .init()) {
         super.init(frame: .zero)
         setup()
-        configure(title: title, placeholder: placeholder)
+        configure(configuration)
     }
 
     required init?(coder: NSCoder) {
@@ -18,46 +58,40 @@ final class DSTextField: UIView {
     }
 
     var text: String? {
-        get { textField.text }
-        set { textField.text = newValue }
+        textField.text
     }
 
-    func configure(title: String?, placeholder: String?) {
-        titleLabel.text = title
-        textField.placeholder = placeholder
+    func configure(_ configuration: DSTextFieldConfiguration) {
+        isHidden = configuration.isHidden
+        titleLabel.text = configuration.title
+        textField.placeholder = configuration.placeholder
         textField.attributedPlaceholder = NSAttributedString(
-            string: placeholder ?? "",
+            string: configuration.placeholder ?? "",
             attributes: [
                 .foregroundColor: DesignSystem.Colors.textSecondary.withAlphaComponent(0.45)
             ]
         )
-    }
 
-    func configureInput(
-        keyboardType: UIKeyboardType = .default,
-        returnKeyType: UIReturnKeyType = .default,
-        autocapitalizationType: UITextAutocapitalizationType = .sentences,
-        autocorrectionType: UITextAutocorrectionType = .default,
-        accessibilityIdentifier: String? = nil
-    ) {
-        textField.keyboardType = keyboardType
-        textField.returnKeyType = returnKeyType
-        textField.autocapitalizationType = autocapitalizationType
-        textField.autocorrectionType = autocorrectionType
-        textField.accessibilityIdentifier = accessibilityIdentifier
-    }
+        if textField.text != configuration.text {
+            textField.text = configuration.text
+        }
 
-    func setError(_ message: String?) {
-        let hasError = !(message?.isEmpty ?? true)
-        errorLabel.text = message
+        if textField.isSecureTextEntry != configuration.isSecureEntry {
+            textField.isSecureTextEntry = configuration.isSecureEntry
+        }
+
+        textField.keyboardType = configuration.keyboardType
+        textField.returnKeyType = configuration.returnKeyType
+        textField.autocapitalizationType = configuration.autocapitalizationType
+        textField.autocorrectionType = configuration.autocorrectionType
+        textField.accessibilityIdentifier = configuration.accessibilityIdentifier
+
+        let hasError = !(configuration.errorMessage?.isEmpty ?? true)
+        errorLabel.text = configuration.errorMessage
         errorLabel.isHidden = !hasError
         containerView.layer.borderColor = hasError
             ? DesignSystem.Colors.error.cgColor
             : DesignSystem.Colors.border.cgColor
-    }
-
-    func setSecureEntry(_ isSecure: Bool) {
-        textField.isSecureTextEntry = isSecure
     }
 
     func addTarget(_ target: Any?, action: Selector, for controlEvents: UIControl.Event) {

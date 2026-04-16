@@ -1,5 +1,27 @@
 import UIKit
 
+struct DSButtonConfiguration {
+    let title: String?
+    let style: DSButton.Style
+    let isEnabled: Bool
+    let isHidden: Bool
+    let accessibilityIdentifier: String?
+
+    init(
+        title: String? = nil,
+        style: DSButton.Style = .primary,
+        isEnabled: Bool = true,
+        isHidden: Bool = false,
+        accessibilityIdentifier: String? = nil
+    ) {
+        self.title = title
+        self.style = style
+        self.isEnabled = isEnabled
+        self.isHidden = isHidden
+        self.accessibilityIdentifier = accessibilityIdentifier
+    }
+}
+
 final class DSButton: UIButton {
 
     enum Style {
@@ -7,28 +29,31 @@ final class DSButton: UIButton {
         case secondary
     }
 
-    private let styleType: Style
+    private var styleType: Style = .primary
 
-    init(style: Style) {
-        self.styleType = style
+    init(configuration: DSButtonConfiguration = .init()) {
         super.init(frame: .zero)
         setup()
+        configure(configuration)
     }
 
     required init?(coder: NSCoder) {
         fatalError()
     }
 
-    override var isEnabled: Bool {
+    override var isHighlighted: Bool {
         didSet {
             applyStyle()
         }
     }
 
-    override var isHighlighted: Bool {
-        didSet {
-            applyStyle()
-        }
+    func configure(_ configuration: DSButtonConfiguration) {
+        styleType = configuration.style
+        setTitle(configuration.title, for: .normal)
+        super.isEnabled = configuration.isEnabled
+        super.isHidden = configuration.isHidden
+        accessibilityIdentifier = configuration.accessibilityIdentifier
+        applyStyle()
     }
 
     private func setup() {

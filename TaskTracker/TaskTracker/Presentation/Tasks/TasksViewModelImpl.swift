@@ -171,7 +171,7 @@ final class TasksViewModelImpl: TasksViewModel {
                 ? .empty(message: query.isEmpty ? "Нет задач" : "Ничего не найдено")
                 : .content(items)
         }
-    }
+    } // искать по доменным моделям, а не viewModel
 
     private func mapToItemVM(_ task: TaskModel) -> TaskItemVM {
         TaskItemVM(

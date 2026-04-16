@@ -15,21 +15,34 @@ final class StubViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignSystem.Colors.background
         title = screenTitle
 
+        let cardView = UIView()
         let label = UILabel()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = screenTitle
-        label.font = .systemFont(ofSize: 24, weight: .semibold)
-        label.textAlignment = .center
 
-        view.addSubview(label)
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        cardView.applyCardStyle()
+
+        label.text = screenTitle
+        label.apply(.title)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+
+        view.addSubview(cardView)
+        cardView.addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            cardView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            cardView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.xl),
+            cardView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.xl),
+
+            label.topAnchor.constraint(equalTo: cardView.topAnchor, constant: DesignSystem.Spacing.xl),
+            label.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: DesignSystem.Spacing.l),
+            label.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
+            label.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -DesignSystem.Spacing.xl)
         ])
     }
 }

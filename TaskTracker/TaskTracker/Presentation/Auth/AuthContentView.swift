@@ -2,17 +2,23 @@ import UIKit
 
 final class AuthContentView: UIView {
 
-    let scrollView = UIScrollView()
-    let contentView = UIView()
-    let stackView = UIStackView()
+    var onEmailChanged: ((String) -> Void)?
+    var onPasswordChanged: ((String) -> Void)?
+    var onPrimaryTap: (() -> Void)?
+    var onSwitchModeTap: (() -> Void)?
 
-    let titleLabel = UILabel()
-    let emailTextField = UITextField()
-    let passwordTextField = UITextField()
-    let errorLabel = UILabel()
-    let primaryButton = UIButton(type: .system)
-    let switchModeButton = UIButton(type: .system)
-    let activityIndicator = UIActivityIndicatorView(style: .medium)
+    private let scrollView = UIScrollView()
+    private let containerView = UIView()
+    private let formCardView = UIView()
+    private let stackView = UIStackView()
+
+    private let headerLabel = UILabel()
+    private let emailTextField = DSTextField()
+    private let passwordTextField = DSTextField()
+    private let primaryButton = DSButton()
+    private let switchModeButton = DSButton()
+    private let loadingView = DSLoadingView()
+    private let messageView = DSMessageView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -23,89 +29,220 @@ final class AuthContentView: UIView {
     required init?(coder: NSCoder) {
         fatalError()
     }
+
+    func render(_ state: AuthViewState) {
+        headerLabel.text = state.mode == .login ? "Вход" : "Регистрация"
+        emailTextField.configure(makeEmailConfiguration(email: state.email))
+        passwordTextField.configure(makePasswordConfiguration(password: state.password))
+        primaryButton.configure(makePrimaryButtonConfiguration(state: state))
+        switchModeButton.configure(makeSwitchModeButtonConfiguration(state: state))
+        loadingView.configure(makeLoadingConfiguration(screen: state.screen))
+        messageView.configure(makeMessageConfiguration(screen: state.screen))
+    }
+
+    func updateKeyboardInset(_ bottomInset: CGFloat) {
+        scrollView.contentInset.bottom = bottomInset
+        scrollView.verticalScrollIndicatorInsets.bottom = bottomInset
+    }
 }
 
 private extension AuthContentView {
     func setupUI() {
-        backgroundColor = .systemBackground
-
-        stackView.axis = .vertical
-        stackView.spacing = 12
-
-        titleLabel.font = .boldSystemFont(ofSize: 28)
-        titleLabel.textAlignment = .center
-
-        emailTextField.placeholder = "Email"
-        emailTextField.borderStyle = .roundedRect
-        emailTextField.keyboardType = .emailAddress
-        emailTextField.autocapitalizationType = .none
-        emailTextField.autocorrectionType = .no
-        emailTextField.returnKeyType = .next
-        emailTextField.accessibilityIdentifier = "auth.email"
-
-        passwordTextField.placeholder = "Пароль"
-        passwordTextField.borderStyle = .roundedRect
-        passwordTextField.isSecureTextEntry = true
-        passwordTextField.autocapitalizationType = .none
-        passwordTextField.autocorrectionType = .no
-        passwordTextField.returnKeyType = .done
-        passwordTextField.accessibilityIdentifier = "auth.password"
-
-        errorLabel.font = .systemFont(ofSize: 14)
-        errorLabel.textColor = .systemRed
-        errorLabel.numberOfLines = 0
-        errorLabel.isHidden = true
-
-        primaryButton.configuration = .filled()
-        primaryButton.accessibilityIdentifier = "auth.primary"
-
-        switchModeButton.titleLabel?.font = .systemFont(ofSize: 14)
-        switchModeButton.accessibilityIdentifier = "auth.switchMode"
-
-        activityIndicator.hidesWhenStopped = true
-
-        addSubview(scrollView)
-        scrollView.addSubview(contentView)
-        contentView.addSubview(stackView)
+        backgroundColor = DesignSystem.Colors.background
 
         [
-            titleLabel,
+            scrollView,
+            containerView,
+            formCardView,
+            stackView,
+            headerLabel,
+            loadingView,
+            messageView
+        ].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+        }
+
+        stackView.axis = .vertical
+        stackView.spacing = DesignSystem.Spacing.l
+
+        headerLabel.apply(.title)
+        headerLabel.textAlignment = .center
+
+        formCardView.applyCardStyle()
+
+        addSubview(scrollView)
+        addSubview(loadingView)
+
+        scrollView.addSubview(containerView)
+        containerView.addSubview(formCardView)
+        formCardView.addSubview(stackView)
+
+        [
+            headerLabel,
             emailTextField,
             passwordTextField,
-            errorLabel,
+            messageView,
             primaryButton,
-            switchModeButton,
-            activityIndicator
+            switchModeButton
         ].forEach { stackView.addArrangedSubview($0) }
     }
 
     func setupLayout() {
-        [scrollView, contentView, stackView].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-        }
-
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            containerView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            containerView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            containerView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
 
-            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            contentView.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
+            formCardView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 96),
+            formCardView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DesignSystem.Spacing.l),
+            formCardView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DesignSystem.Spacing.l),
+            formCardView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -DesignSystem.Spacing.xl),
 
-            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 40),
-            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20),
+            stackView.topAnchor.constraint(equalTo: formCardView.topAnchor, constant: DesignSystem.Spacing.xxl),
+            stackView.leadingAnchor.constraint(equalTo: formCardView.leadingAnchor, constant: DesignSystem.Spacing.l),
+            stackView.trailingAnchor.constraint(equalTo: formCardView.trailingAnchor, constant: -DesignSystem.Spacing.l),
+            stackView.bottomAnchor.constraint(equalTo: formCardView.bottomAnchor, constant: -DesignSystem.Spacing.xxl),
 
-            emailTextField.heightAnchor.constraint(equalToConstant: 44),
-            passwordTextField.heightAnchor.constraint(equalToConstant: 44),
-            primaryButton.heightAnchor.constraint(equalToConstant: 50),
+            loadingView.centerXAnchor.constraint(equalTo: centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            loadingView.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: DesignSystem.Spacing.xxl),
+            loadingView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -DesignSystem.Spacing.xxl)
         ])
+    }
+
+    func makeEmailConfiguration(email: String) -> DSTextFieldConfiguration {
+        DSTextFieldConfiguration(
+            title: "Email",
+            placeholder: "Введите email",
+            text: email,
+            errorMessage: nil,
+            isSecureEntry: false,
+            keyboardType: .emailAddress,
+            returnKeyType: .next,
+            autocapitalizationType: .none,
+            autocorrectionType: .no,
+            accessibilityIdentifier: "auth.email",
+            isHidden: false,
+            onTextChanged: { [weak self] text in
+                self?.onEmailChanged?(text)
+            }
+        )
+    }
+
+    func makePasswordConfiguration(password: String) -> DSTextFieldConfiguration {
+        DSTextFieldConfiguration(
+            title: "Пароль",
+            placeholder: "Введите пароль",
+            text: password,
+            errorMessage: nil,
+            isSecureEntry: true,
+            keyboardType: .default,
+            returnKeyType: .done,
+            autocapitalizationType: .none,
+            autocorrectionType: .no,
+            accessibilityIdentifier: "auth.password",
+            isHidden: false,
+            onTextChanged: { [weak self] text in
+                self?.onPasswordChanged?(text)
+            }
+        )
+    }
+
+    func makePrimaryButtonConfiguration(state: AuthViewState) -> DSButtonConfiguration {
+        let isLoading: Bool
+
+        switch state.screen {
+        case .loading:
+            isLoading = true
+        default:
+            isLoading = false
+        }
+
+        return DSButtonConfiguration(
+            title: state.mode == .login ? "Войти" : "Зарегистрироваться",
+            style: .primary,
+            isEnabled: state.isPrimaryButtonEnabled && !isLoading,
+            isHidden: false,
+            accessibilityIdentifier: "auth.primary",
+            onTap: { [weak self] in
+                self?.onPrimaryTap?()
+            }
+        )
+    }
+
+    func makeSwitchModeButtonConfiguration(state: AuthViewState) -> DSButtonConfiguration {
+        let isLoading: Bool
+
+        switch state.screen {
+        case .loading:
+            isLoading = true
+        default:
+            isLoading = false
+        }
+
+        return DSButtonConfiguration(
+            title: state.mode == .login
+                ? "Нет аккаунта? Зарегистрироваться"
+                : "Уже есть аккаунт? Войти",
+            style: .secondary,
+            isEnabled: !isLoading,
+            isHidden: false,
+            accessibilityIdentifier: "auth.switchMode",
+            onTap: { [weak self] in
+                self?.onSwitchModeTap?()
+            }
+        )
+    }
+
+    func makeLoadingConfiguration(screen: LoadableState<AuthContent>) -> DSLoadingViewConfiguration {
+        switch screen {
+        case .loading:
+            return DSLoadingViewConfiguration(
+                text: "Проверяем данные...",
+                isHidden: false,
+                isAnimating: true
+            )
+        default:
+            return DSLoadingViewConfiguration(
+                text: "Проверяем данные...",
+                isHidden: true,
+                isAnimating: false
+            )
+        }
+    }
+
+    func makeMessageConfiguration(screen: LoadableState<AuthContent>) -> DSMessageViewConfiguration {
+        switch screen {
+        case .empty(let message):
+            return DSMessageViewConfiguration(
+                style: .empty,
+                title: "Пока ничего нет",
+                message: message,
+                actionTitle: nil,
+                isHidden: false,
+                onActionTap: nil
+            )
+
+        case .error(let message):
+            return DSMessageViewConfiguration(
+                style: .error,
+                title: "Ошибка",
+                message: message,
+                actionTitle: nil,
+                isHidden: false,
+                onActionTap: nil
+            )
+
+        default:
+            return DSMessageViewConfiguration(isHidden: true)
+        }
     }
 }

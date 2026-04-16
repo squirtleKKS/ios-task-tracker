@@ -94,7 +94,6 @@ private extension TasksContentView {
     func setupActions() {
         refreshControl.tintColor = DesignSystem.Colors.primary
         refreshControl.addTarget(self, action: #selector(didPullToRefresh), for: .valueChanged)
-        messageView.actionButton.addTarget(self, action: #selector(didTapRetry), for: .touchUpInside)
     }
 
     func renderSearchQuery(_ query: String) {
@@ -125,7 +124,11 @@ private extension TasksContentView {
                     isAnimating: false
                 )
             )
-            messageView.configure(DSMessageViewConfiguration(isHidden: true))
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    isHidden: true
+                )
+            )
 
         case .loading:
             if isRefreshing {
@@ -137,7 +140,11 @@ private extension TasksContentView {
                         isAnimating: false
                     )
                 )
-                messageView.configure(DSMessageViewConfiguration(isHidden: true))
+                messageView.configure(
+                    DSMessageViewConfiguration(
+                        isHidden: true
+                    )
+                )
             } else {
                 listManager.setItems([], in: tableView)
                 tableView.isHidden = true
@@ -148,7 +155,11 @@ private extension TasksContentView {
                         isAnimating: true
                     )
                 )
-                messageView.configure(DSMessageViewConfiguration(isHidden: true))
+                messageView.configure(
+                    DSMessageViewConfiguration(
+                        isHidden: true
+                    )
+                )
             }
 
         case .content(let items):
@@ -161,7 +172,11 @@ private extension TasksContentView {
                     isAnimating: false
                 )
             )
-            messageView.configure(DSMessageViewConfiguration(isHidden: true))
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    isHidden: true
+                )
+            )
 
         case .empty(let message):
             listManager.setItems([], in: tableView)
@@ -179,7 +194,8 @@ private extension TasksContentView {
                     title: "Пусто",
                     message: message,
                     actionTitle: nil,
-                    isHidden: false
+                    isHidden: false,
+                    onActionTap: nil
                 )
             )
 
@@ -193,7 +209,11 @@ private extension TasksContentView {
                         isAnimating: false
                     )
                 )
-                messageView.configure(DSMessageViewConfiguration(isHidden: true))
+                messageView.configure(
+                    DSMessageViewConfiguration(
+                        isHidden: true
+                    )
+                )
             } else {
                 listManager.setItems([], in: tableView)
                 tableView.isHidden = true
@@ -210,7 +230,10 @@ private extension TasksContentView {
                         title: "Ошибка",
                         message: message,
                         actionTitle: "Повторить",
-                        isHidden: false
+                        isHidden: false,
+                        onActionTap: { [weak self] in
+                            self?.onRetryTap?()
+                        }
                     )
                 )
             }
@@ -219,10 +242,6 @@ private extension TasksContentView {
 
     @objc func didPullToRefresh() {
         onRefresh?()
-    }
-
-    @objc func didTapRetry() {
-        onRetryTap?()
     }
 }
 

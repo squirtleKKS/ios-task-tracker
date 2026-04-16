@@ -6,19 +6,22 @@ struct DSButtonConfiguration {
     let isEnabled: Bool
     let isHidden: Bool
     let accessibilityIdentifier: String?
+    let onTap: (() -> Void)?
 
     init(
         title: String? = nil,
         style: DSButton.Style = .primary,
         isEnabled: Bool = true,
         isHidden: Bool = false,
-        accessibilityIdentifier: String? = nil
+        accessibilityIdentifier: String? = nil,
+        onTap: (() -> Void)? = nil
     ) {
         self.title = title
         self.style = style
         self.isEnabled = isEnabled
         self.isHidden = isHidden
         self.accessibilityIdentifier = accessibilityIdentifier
+        self.onTap = onTap
     }
 }
 
@@ -30,6 +33,7 @@ final class DSButton: UIButton {
     }
 
     private var styleType: Style = .primary
+    private var onTap: (() -> Void)?
 
     init(configuration: DSButtonConfiguration = .init()) {
         super.init(frame: .zero)
@@ -53,6 +57,7 @@ final class DSButton: UIButton {
         super.isEnabled = configuration.isEnabled
         super.isHidden = configuration.isHidden
         accessibilityIdentifier = configuration.accessibilityIdentifier
+        onTap = configuration.onTap
         applyStyle()
     }
 
@@ -62,6 +67,7 @@ final class DSButton: UIButton {
         layer.cornerRadius = DesignSystem.CornerRadius.m
         clipsToBounds = true
         heightAnchor.constraint(equalToConstant: DesignSystem.Sizes.buttonHeight).isActive = true
+        addTarget(self, action: #selector(handleTap), for: .touchUpInside)
         applyStyle()
     }
 
@@ -96,5 +102,9 @@ final class DSButton: UIButton {
         }
 
         return DesignSystem.Colors.primary
+    }
+
+    @objc private func handleTap() {
+        onTap?()
     }
 }

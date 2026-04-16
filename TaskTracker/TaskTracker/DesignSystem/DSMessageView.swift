@@ -6,19 +6,22 @@ struct DSMessageViewConfiguration {
     let message: String?
     let actionTitle: String?
     let isHidden: Bool
+    let onActionTap: (() -> Void)?
 
     init(
         style: DSMessageView.Style = .empty,
         title: String? = nil,
         message: String? = nil,
         actionTitle: String? = nil,
-        isHidden: Bool = true
+        isHidden: Bool = true,
+        onActionTap: (() -> Void)? = nil
     ) {
         self.style = style
         self.title = title
         self.message = message
         self.actionTitle = actionTitle
         self.isHidden = isHidden
+        self.onActionTap = onActionTap
     }
 }
 
@@ -29,8 +32,7 @@ final class DSMessageView: UIView {
         case error
     }
 
-    let actionButton = DSButton()
-
+    private let actionButton = DSButton()
     private let titleLabel = UILabel()
     private let messageLabel = UILabel()
     private let stackView = UIStackView()
@@ -58,7 +60,9 @@ final class DSMessageView: UIView {
                 title: configuration.actionTitle,
                 style: .secondary,
                 isEnabled: true,
-                isHidden: !hasAction
+                isHidden: !hasAction,
+                accessibilityIdentifier: nil,
+                onTap: configuration.onActionTap
             )
         )
     }

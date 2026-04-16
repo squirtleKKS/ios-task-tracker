@@ -80,7 +80,11 @@ private extension FeaturesContentView {
                     isAnimating: false
                 )
             )
-            messageView.configure(DSMessageViewConfiguration(isHidden: true))
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    isHidden: true
+                )
+            )
 
         case .loading:
             items = []
@@ -93,7 +97,11 @@ private extension FeaturesContentView {
                     isAnimating: true
                 )
             )
-            messageView.configure(DSMessageViewConfiguration(isHidden: true))
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    isHidden: true
+                )
+            )
 
         case .content(let items):
             self.items = items
@@ -106,7 +114,11 @@ private extension FeaturesContentView {
                     isAnimating: false
                 )
             )
-            messageView.configure(DSMessageViewConfiguration(isHidden: true))
+            messageView.configure(
+                DSMessageViewConfiguration(
+                    isHidden: true
+                )
+            )
 
         case .empty(let message):
             items = []
@@ -125,7 +137,8 @@ private extension FeaturesContentView {
                     title: "Пусто",
                     message: message,
                     actionTitle: nil,
-                    isHidden: false
+                    isHidden: false,
+                    onActionTap: nil
                 )
             )
 
@@ -146,7 +159,8 @@ private extension FeaturesContentView {
                     title: "Ошибка",
                     message: message,
                     actionTitle: nil,
-                    isHidden: false
+                    isHidden: false,
+                    onActionTap: nil
                 )
             )
         }

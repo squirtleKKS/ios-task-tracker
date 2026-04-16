@@ -24,7 +24,6 @@ final class AuthContentView: UIView {
         super.init(frame: frame)
         setupUI()
         setupLayout()
-        setupActions()
     }
 
     required init?(coder: NSCoder) {
@@ -119,13 +118,6 @@ private extension AuthContentView {
         ])
     }
 
-    func setupActions() {
-        emailTextField.addTarget(self, action: #selector(emailChanged), for: .editingChanged)
-        passwordTextField.addTarget(self, action: #selector(passwordChanged), for: .editingChanged)
-        primaryButton.addTarget(self, action: #selector(primaryTapped), for: .touchUpInside)
-        switchModeButton.addTarget(self, action: #selector(switchModeTapped), for: .touchUpInside)
-    }
-
     func makeEmailConfiguration(email: String) -> DSTextFieldConfiguration {
         DSTextFieldConfiguration(
             title: "Email",
@@ -138,7 +130,10 @@ private extension AuthContentView {
             autocapitalizationType: .none,
             autocorrectionType: .no,
             accessibilityIdentifier: "auth.email",
-            isHidden: false
+            isHidden: false,
+            onTextChanged: { [weak self] text in
+                self?.onEmailChanged?(text)
+            }
         )
     }
 
@@ -154,7 +149,10 @@ private extension AuthContentView {
             autocapitalizationType: .none,
             autocorrectionType: .no,
             accessibilityIdentifier: "auth.password",
-            isHidden: false
+            isHidden: false,
+            onTextChanged: { [weak self] text in
+                self?.onPasswordChanged?(text)
+            }
         )
     }
 
@@ -173,7 +171,10 @@ private extension AuthContentView {
             style: .primary,
             isEnabled: state.isPrimaryButtonEnabled && !isLoading,
             isHidden: false,
-            accessibilityIdentifier: "auth.primary"
+            accessibilityIdentifier: "auth.primary",
+            onTap: { [weak self] in
+                self?.onPrimaryTap?()
+            }
         )
     }
 
@@ -194,7 +195,10 @@ private extension AuthContentView {
             style: .secondary,
             isEnabled: !isLoading,
             isHidden: false,
-            accessibilityIdentifier: "auth.switchMode"
+            accessibilityIdentifier: "auth.switchMode",
+            onTap: { [weak self] in
+                self?.onSwitchModeTap?()
+            }
         )
     }
 
@@ -223,7 +227,8 @@ private extension AuthContentView {
                 title: "Пока ничего нет",
                 message: message,
                 actionTitle: nil,
-                isHidden: false
+                isHidden: false,
+                onActionTap: nil
             )
 
         case .error(let message):
@@ -232,27 +237,12 @@ private extension AuthContentView {
                 title: "Ошибка",
                 message: message,
                 actionTitle: nil,
-                isHidden: false
+                isHidden: false,
+                onActionTap: nil
             )
 
         default:
             return DSMessageViewConfiguration(isHidden: true)
         }
-    }
-
-    @objc func emailChanged() {
-        onEmailChanged?(emailTextField.text ?? "")
-    }
-
-    @objc func passwordChanged() {
-        onPasswordChanged?(passwordTextField.text ?? "")
-    }
-
-    @objc func primaryTapped() {
-        onPrimaryTap?()
-    }
-
-    @objc func switchModeTapped() {
-        onSwitchModeTap?()
     }
 }

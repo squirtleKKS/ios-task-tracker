@@ -12,6 +12,7 @@ struct DSTextFieldConfiguration {
     let autocorrectionType: UITextAutocorrectionType
     let accessibilityIdentifier: String?
     let isHidden: Bool
+    let onTextChanged: ((String) -> Void)?
 
     init(
         title: String? = nil,
@@ -24,7 +25,8 @@ struct DSTextFieldConfiguration {
         autocapitalizationType: UITextAutocapitalizationType = .sentences,
         autocorrectionType: UITextAutocorrectionType = .default,
         accessibilityIdentifier: String? = nil,
-        isHidden: Bool = false
+        isHidden: Bool = false,
+        onTextChanged: ((String) -> Void)? = nil
     ) {
         self.title = title
         self.placeholder = placeholder
@@ -37,6 +39,7 @@ struct DSTextFieldConfiguration {
         self.autocorrectionType = autocorrectionType
         self.accessibilityIdentifier = accessibilityIdentifier
         self.isHidden = isHidden
+        self.onTextChanged = onTextChanged
     }
 }
 
@@ -46,6 +49,8 @@ final class DSTextField: UIView {
     private let containerView = UIView()
     private let textField = UITextField()
     private let errorLabel = UILabel()
+
+    private var onTextChanged: ((String) -> Void)?
 
     init(configuration: DSTextFieldConfiguration = .init()) {
         super.init(frame: .zero)
@@ -85,6 +90,7 @@ final class DSTextField: UIView {
         textField.autocapitalizationType = configuration.autocapitalizationType
         textField.autocorrectionType = configuration.autocorrectionType
         textField.accessibilityIdentifier = configuration.accessibilityIdentifier
+        onTextChanged = configuration.onTextChanged
 
         let hasError = !(configuration.errorMessage?.isEmpty ?? true)
         errorLabel.text = configuration.errorMessage
@@ -92,10 +98,6 @@ final class DSTextField: UIView {
         containerView.layer.borderColor = hasError
             ? DesignSystem.Colors.error.cgColor
             : DesignSystem.Colors.border.cgColor
-    }
-
-    func addTarget(_ target: Any?, action: Selector, for controlEvents: UIControl.Event) {
-        textField.addTarget(target, action: action, for: controlEvents)
     }
 
     private func setup() {
@@ -117,6 +119,7 @@ final class DSTextField: UIView {
         textField.tintColor = DesignSystem.Colors.primary
         textField.borderStyle = .none
         textField.clearButtonMode = .whileEditing
+        textField.addTarget(self, action: #selector(handleEditingChanged), for: .editingChanged)
 
         errorLabel.apply(.error)
         errorLabel.numberOfLines = 0
@@ -147,5 +150,9 @@ final class DSTextField: UIView {
             errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
             errorLabel.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
+    }
+
+    @objc private func handleEditingChanged() {
+        onTextChanged?(textField.text ?? "")
     }
 }

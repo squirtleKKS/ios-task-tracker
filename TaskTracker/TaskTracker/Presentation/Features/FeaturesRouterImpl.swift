@@ -14,7 +14,7 @@ final class FeaturesRouterImpl: FeaturesRouter {
     }
     
     func openBDUI() {
-        let controller = BDUIProfileViewController()
+        let controller = ProfileAssembly.make()
         if let navigationController = viewController?.navigationController {
             navigationController.pushViewController(controller, animated: true)
         } else {

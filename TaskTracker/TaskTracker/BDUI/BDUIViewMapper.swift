@@ -176,11 +176,14 @@ private extension BDUIViewMapper {
             let child = map(node: subviews[0])
             contentContainer.addSubview(child)
 
+            child.setContentHuggingPriority(.required, for: .vertical)
+            child.setContentCompressionResistancePriority(.required, for: .vertical)
+
             NSLayoutConstraint.activate([
                 child.topAnchor.constraint(equalTo: contentContainer.topAnchor),
                 child.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
                 child.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
-                child.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
+                child.bottomAnchor.constraint(lessThanOrEqualTo: contentContainer.bottomAnchor)
             ])
             return
         }

@@ -1,11 +1,7 @@
 import Foundation
 
-protocol BDUIScreenProviding {
-    func makeScreen() throws -> BDUIScreen
-}
-
-final class BDUIProfileJSONProvider: BDUIScreenProviding {
-    func makeScreen() throws -> BDUIScreen {
+final class LocalScreenProvider: BackendDrivenScreenLoading {
+    func loadScreen(configuration: BackendDrivenScreenConfiguration) async throws -> BDUIScreen {
         let json = """
         {
           "root": {

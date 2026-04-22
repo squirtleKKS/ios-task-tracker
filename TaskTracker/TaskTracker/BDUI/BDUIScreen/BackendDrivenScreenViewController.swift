@@ -2,28 +2,19 @@ import UIKit
 
 final class BackendDrivenScreenViewController: UIViewController {
 
-    var onError: ((Error) -> Void)?
-
-    private let configuration: BackendDrivenScreenConfiguration
-    private let loader: BackendDrivenScreenLoading
-    private let mapper: BDUIViewMapping
-    private let loadingView: UIView
-    private let actionHandler: BDUIActionHandling
-
+    private let viewModel: BackendDrivenScreenViewModeling
     private var renderedView: UIView?
 
-    init(
-        configuration: BackendDrivenScreenConfiguration,
-        loader: BackendDrivenScreenLoading,
-        mapper: BDUIViewMapping,
-        loadingView: UIView,
-        actionHandler: BDUIActionHandling
-    ) {
-        self.configuration = configuration
-        self.loader = loader
-        self.mapper = mapper
-        self.loadingView = loadingView
-        self.actionHandler = actionHandler
+    private let loadingView = DSLoadingView(
+        configuration: DSLoadingViewConfiguration(
+            text: "Загружаем экран...",
+            isHidden: false,
+            isAnimating: true
+        )
+    )
+
+    init(viewModel: BackendDrivenScreenViewModeling) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -33,14 +24,40 @@ final class BackendDrivenScreenViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        bindViewModel()
         setupLoadingView()
-        loadScreen()
+        viewModel.onAppear()
     }
 }
 
 private extension BackendDrivenScreenViewController {
+    func bindViewModel() {
+        viewModel.onLoadingChange = { [weak self] isLoading in
+            guard let self else { return }
+
+            if isLoading {
+                showLoading()
+            } else {
+                hideLoading()
+            }
+        }
+
+        viewModel.onViewLoaded = { [weak self] view in
+            self?.render(view)
+        }
+
+        viewModel.onError = { error in
+            print(error)
+        }
+    }
+
     func setupLoadingView() {
         loadingView.translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    func showLoading() {
+        guard loadingView.superview == nil else { return }
+
         view.addSubview(loadingView)
 
         NSLayoutConstraint.activate([
@@ -51,33 +68,21 @@ private extension BackendDrivenScreenViewController {
         ])
     }
 
-    func loadScreen() {
-        Task { [weak self] in
-            guard let self else { return }
-
-            do {
-                let screen = try await loader.loadScreen(configuration: configuration)
-                render(screen)
-            } catch {
-                onError?(error)
-            }
-        }
+    func hideLoading() {
+        loadingView.removeFromSuperview()
     }
 
-    func render(_ screen: BDUIScreen) {
-        loadingView.removeFromSuperview()
+    func render(_ rootView: UIView) {
         renderedView?.removeFromSuperview()
-
-        let rootView = mapper.map(node: screen.root)
         renderedView = rootView
 
         view.addSubview(rootView)
+
         NSLayoutConstraint.activate([
             rootView.topAnchor.constraint(equalTo: view.topAnchor),
             rootView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             rootView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             rootView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-
         ])
     }
 }
